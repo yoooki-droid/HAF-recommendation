@@ -1,0 +1,17 @@
+{
+  "theme_version": "haf.numerology-themes.v1",
+  "numbers": {
+    "1": {"keywords": ["开始", "自主", "聚焦"], "gentle_prompt": "把力量放回一个真正想开始的方向。"},
+    "2": {"keywords": ["连接", "接收", "耐心"], "gentle_prompt": "给关系和感受留出被听见的空间。"},
+    "3": {"keywords": ["表达", "创造", "轻盈"], "gentle_prompt": "让尚未说出的感受找到一种表达。"},
+    "4": {"keywords": ["安定", "秩序", "建构"], "gentle_prompt": "回到身体和具体的小步骤里。"},
+    "5": {"keywords": ["流动", "变化", "自由"], "gentle_prompt": "允许新的经验松动原来的边界。"},
+    "6": {"keywords": ["关照", "和谐", "责任"], "gentle_prompt": "在照顾别人之前，也为自己留一份温柔。"},
+    "7": {"keywords": ["内观", "辨识", "澄明"], "gentle_prompt": "放慢一点，听见更深处真正的问题。"},
+    "8": {"keywords": ["力量", "边界", "实现"], "gentle_prompt": "把意图放进清晰的选择与行动。"},
+    "9": {"keywords": ["完成", "放下", "整合"], "gentle_prompt": "允许已经完成的部分被温柔地放下。"},
+    "11": {"keywords": ["灵感", "敏锐", "照见"], "gentle_prompt": "让敏锐成为照见，而不是额外的负担。"},
+    "22": {"keywords": ["愿景", "落地", "建造"], "gentle_prompt": "把宽广的愿景安放进一个可完成的动作。"},
+    "33": {"keywords": ["慈悲", "陪伴", "奉献"], "gentle_prompt": "让给予与自我关照保持同样的重量。"}
+  }
+}

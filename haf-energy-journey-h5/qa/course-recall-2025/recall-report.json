@@ -1,0 +1,304 @@
+{
+  "validation_version": "haf.course-recall-validation.v1",
+  "catalog_label": "HAF 2025",
+  "catalog_version": "haf-2025-api-c03f4b4b3365d311",
+  "availability_assumption": "Catalog presence controls delisting. During an active event, only sessions whose end time is later than the request time are eligible. Content coverage uses the full selected historical catalog so relevance can still be measured.",
+  "event_time_availability": [
+    {
+      "as_of": "2025-10-24 08:00:00",
+      "available_course_concepts": 226,
+      "available_sessions": 254,
+      "expired_sessions_excluded": 0
+    },
+    {
+      "as_of": "2025-10-24 18:00:00",
+      "available_course_concepts": 158,
+      "available_sessions": 177,
+      "expired_sessions_excluded": 77
+    },
+    {
+      "as_of": "2025-10-25 08:00:00",
+      "available_course_concepts": 158,
+      "available_sessions": 177,
+      "expired_sessions_excluded": 77
+    },
+    {
+      "as_of": "2025-10-25 18:00:00",
+      "available_course_concepts": 85,
+      "available_sessions": 91,
+      "expired_sessions_excluded": 163
+    },
+    {
+      "as_of": "2025-10-26 08:00:00",
+      "available_course_concepts": 84,
+      "available_sessions": 90,
+      "expired_sessions_excluded": 164
+    },
+    {
+      "as_of": "2025-10-26 18:00:00",
+      "available_course_concepts": 0,
+      "available_sessions": 0,
+      "expired_sessions_excluded": 254
+    },
+    {
+      "as_of": "2025-10-26 23:59:59",
+      "available_course_concepts": 0,
+      "available_sessions": 0,
+      "expired_sessions_excluded": 254
+    }
+  ],
+  "sale_data_summary": {
+    "sale_state_counts": {
+      "paid_course_link_available": 197,
+      "event_ticket_required": 54,
+      "paid_course_missing_link": 3
+    },
+    "inventory_known": 0,
+    "inventory_unknown": 254,
+    "detail_endpoint": "/organizer/suggestionInfo?elementId={elementId}",
+    "detail_missing_status": 1103
+  },
+  "scenario_count": 2025,
+  "scenario_grid": {
+    "life_path": "1-9",
+    "personal_day": "1-9",
+    "compass": "5 x 5 continuous coordinate grid"
+  },
+  "tag_distribution": {
+    "chakras": {
+      "sacral": 71,
+      "third_eye": 55,
+      "heart": 120,
+      "crown": 93,
+      "root": 67,
+      "throat": 39,
+      "solar_plexus": 7
+    },
+    "numerology": {
+      "5": 79,
+      "3": 81,
+      "6": 141,
+      "1": 52,
+      "4": 62,
+      "7": 72,
+      "9": 41,
+      "2": 114,
+      "8": 15
+    },
+    "poles": {
+      "inward": 203,
+      "active": 58,
+      "calm": 168,
+      "outward": 23
+    },
+    "formats": {
+      "lecture": 33,
+      "culture": 51,
+      "sound": 38,
+      "creative": 29,
+      "meditation": 23,
+      "breathwork": 17,
+      "dialogue": 22,
+      "guided_practice": 3,
+      "movement": 10
+    }
+  },
+  "review_required_count": 4,
+  "accuracy_only": {
+    "strategy": "accuracy_only",
+    "course_count": 226,
+    "reached_in_top3": 182,
+    "top3_coverage_rate": 0.8053,
+    "reachable_in_top15": 225,
+    "top15_reachability_rate": 0.9956,
+    "mean_selected_score": 0.7987,
+    "p10_selected_score": 0.6675,
+    "mean_unique_modalities_per_result": 2.869,
+    "exposure_gini": 0.6369,
+    "top10_exposure_share": 0.2583,
+    "never_selected_ids": [
+      "haf-2025-3da58d6542a9",
+      "haf-2025-25ea63b0dac2",
+      "haf-2025-15bddf58c941",
+      "haf-2025-bf84553d17ad",
+      "haf-2025-4ff821294f81",
+      "haf-2025-e587da7e2ad9",
+      "haf-2025-e85a03d9dd8f",
+      "haf-2025-d6c434200abc",
+      "haf-2025-a03421584e7a",
+      "haf-2025-26e0580c82e2",
+      "haf-2025-02c5232f2aeb",
+      "haf-2025-a2241acbfade",
+      "haf-2025-66197f5ed332",
+      "haf-2025-57008f709064",
+      "haf-2025-544b057c09f2",
+      "haf-2025-a90db7b6de0c",
+      "haf-2025-783420712b1e",
+      "haf-2025-1ba53227cb32",
+      "haf-2025-22332529fb7f",
+      "haf-2025-227d71c15ae9",
+      "haf-2025-70652833c635",
+      "haf-2025-a8b13f7064d0",
+      "haf-2025-121f302b7c5e",
+      "haf-2025-61508a887a11",
+      "haf-2025-609deebca39b",
+      "haf-2025-de206511ab56",
+      "haf-2025-c17e857c55e9",
+      "haf-2025-3d4b5c7e5aa7",
+      "haf-2025-ebcf0569f7ed",
+      "haf-2025-9629941b9759",
+      "haf-2025-839e0830f45d",
+      "haf-2025-1f7c103fe821",
+      "haf-2025-14fec5da90aa",
+      "haf-2025-1ec08fd70dae",
+      "haf-2025-4f8168f9a14e",
+      "haf-2025-3f0c26136feb",
+      "haf-2025-172ce9f6abc0",
+      "haf-2025-45571513e658",
+      "haf-2025-01ba250304f2",
+      "haf-2025-aeb78c5995fd",
+      "haf-2025-2522393bd89f",
+      "haf-2025-5a7e9a00c5ec",
+      "haf-2025-3d2ba68ec206",
+      "haf-2025-1543bb5726ec"
+    ],
+    "top_exposed": [
+      [
+        "haf-2025-c23d03d0bef1",
+        231
+      ],
+      [
+        "haf-2025-8e5a3a0e57b8",
+        218
+      ],
+      [
+        "haf-2025-f19f02551862",
+        202
+      ],
+      [
+        "haf-2025-c08d7d25230d",
+        184
+      ],
+      [
+        "haf-2025-4d24d638b4e1",
+        145
+      ],
+      [
+        "haf-2025-b0d881259f7a",
+        144
+      ],
+      [
+        "haf-2025-b1e13928fa8c",
+        133
+      ],
+      [
+        "haf-2025-e7fa6ab3d9fe",
+        122
+      ],
+      [
+        "haf-2025-062196817502",
+        96
+      ],
+      [
+        "haf-2025-df52f5ccba0d",
+        94
+      ],
+      [
+        "haf-2025-e6d5fd717953",
+        92
+      ],
+      [
+        "haf-2025-b88dbddaef99",
+        91
+      ],
+      [
+        "haf-2025-f7538705e254",
+        90
+      ],
+      [
+        "haf-2025-3547c707abfe",
+        81
+      ],
+      [
+        "haf-2025-f03f4867c743",
+        80
+      ]
+    ]
+  },
+  "balanced_three_slots": {
+    "strategy": "two_accuracy_plus_one_qualified_exploration",
+    "course_count": 226,
+    "reached_in_top3": 226,
+    "top3_coverage_rate": 1.0,
+    "reachable_in_top15": 225,
+    "top15_reachability_rate": 0.9956,
+    "mean_selected_score": 0.7763,
+    "p10_selected_score": 0.6275,
+    "mean_unique_modalities_per_result": 2.615,
+    "exposure_gini": 0.3564,
+    "top10_exposure_share": 0.2038,
+    "never_selected_ids": [],
+    "top_exposed": [
+      [
+        "haf-2025-c23d03d0bef1",
+        190
+      ],
+      [
+        "haf-2025-8e5a3a0e57b8",
+        180
+      ],
+      [
+        "haf-2025-f19f02551862",
+        161
+      ],
+      [
+        "haf-2025-c08d7d25230d",
+        146
+      ],
+      [
+        "haf-2025-b0d881259f7a",
+        127
+      ],
+      [
+        "haf-2025-b1e13928fa8c",
+        91
+      ],
+      [
+        "haf-2025-4d24d638b4e1",
+        90
+      ],
+      [
+        "haf-2025-e7fa6ab3d9fe",
+        89
+      ],
+      [
+        "haf-2025-e6d5fd717953",
+        84
+      ],
+      [
+        "haf-2025-3547c707abfe",
+        80
+      ],
+      [
+        "haf-2025-df52f5ccba0d",
+        78
+      ],
+      [
+        "haf-2025-062196817502",
+        69
+      ],
+      [
+        "haf-2025-b88dbddaef99",
+        69
+      ],
+      [
+        "haf-2025-f7538705e254",
+        66
+      ],
+      [
+        "haf-2025-f03f4867c743",
+        63
+      ]
+    ]
+  }
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "HAF 七脉轮能量映射"
+  short_description: "将罗盘触点与灵数映射为七脉轮相对能量、主次主题与解释依据"
+  default_prompt: "Use $haf-chakra-energy to project a compass point and numerology profile into a transparent seven-chakra reflection."

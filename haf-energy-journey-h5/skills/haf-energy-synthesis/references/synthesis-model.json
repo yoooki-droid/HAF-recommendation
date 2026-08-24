@@ -1,0 +1,69 @@
+{
+  "synthesis_version": "haf.energy-synthesis.v2",
+  "weights": {
+    "personal_day": 0.12,
+    "life_path": 0.05,
+    "primary_chakra": 0.22,
+    "secondary_chakra": 0.06,
+    "compass_total": 0.55
+  },
+  "number_keyword": {
+    "1": "begin",
+    "2": "connect",
+    "3": "express",
+    "4": "ground",
+    "5": "flow",
+    "6": "care",
+    "7": "insight",
+    "8": "strength",
+    "9": "release",
+    "11": "insight",
+    "22": "strength",
+    "33": "care"
+  },
+  "chakra_keyword": {
+    "root": "ground",
+    "sacral": "flow",
+    "solar_plexus": "strength",
+    "heart": "connect",
+    "throat": "express",
+    "third_eye": "insight",
+    "crown": "release"
+  },
+  "compass_keyword": {
+    "inward": "insight",
+    "outward": "connect",
+    "calm": "integrate",
+    "active": "strength"
+  },
+  "compass_grid_keyword": {
+    "inward_calm": "insight",
+    "center_calm": "integrate",
+    "outward_calm": "express",
+    "inward_center": "care",
+    "center_center": "integrate",
+    "outward_center": "connect",
+    "inward_active": "ground",
+    "center_active": "flow",
+    "outward_active": "strength"
+  },
+  "compass_response_power": 1.35,
+  "compass_labels": {
+    "inward": "向内求索",
+    "outward": "向外连接",
+    "calm": "安静整合",
+    "active": "唤醒行动"
+  },
+  "keywords": {
+    "begin": {"display": "开始", "guidance": "把注意力放回一个真正想迈出的第一步。", "reflection_prompt": "今天，我最愿意从哪一个小小的开始出发？"},
+    "connect": {"display": "连接", "guidance": "让真实的感受在关系里拥有被听见的位置。", "reflection_prompt": "今天，我想更真诚地靠近谁，或靠近自己的哪一部分？"},
+    "express": {"display": "表达", "guidance": "让还没有说完的感受，找到自然的声音。", "reflection_prompt": "此刻，有什么值得被我清楚而温柔地说出来？"},
+    "ground": {"display": "安定", "guidance": "回到身体与具体的小事，让力量重新落地。", "reflection_prompt": "什么简单的动作，可以让我重新感到脚下有支撑？"},
+    "flow": {"display": "流动", "guidance": "不急着固定答案，让感受带你经过新的可能。", "reflection_prompt": "如果不急着控制结果，我愿意让什么自然发生？"},
+    "care": {"display": "关照", "guidance": "在照顾外界之前，也把一份温柔留给自己。", "reflection_prompt": "今天，我可以怎样更具体地照顾自己的需要？"},
+    "insight": {"display": "照见", "guidance": "放慢一点，让真正重要的线索从安静里浮现。", "reflection_prompt": "当我不急着回答时，内心正在让我看见什么？"},
+    "strength": {"display": "力量", "guidance": "把分散的能量收回到清晰的选择和行动里。", "reflection_prompt": "今天，哪一个选择最值得我坚定地站在自己这边？"},
+    "release": {"display": "放下", "guidance": "为已经完成的部分腾出空间，让新的方向慢慢出现。", "reflection_prompt": "今天，有什么已经完成，可以被我轻轻放下？"},
+    "integrate": {"display": "整合", "guidance": "先不急着前进，让经历在安静中重新归位。", "reflection_prompt": "此刻，我需要把哪些感受重新放回同一个整体？"}
+  }
+}

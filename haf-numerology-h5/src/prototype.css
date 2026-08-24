@@ -1,0 +1,231 @@
+/* HAF app-owned UI. The mobile runtime and device chrome live in styles.css. */
+
+:root {
+  --haf-blue: #168bd7;
+  --haf-deep: #0d4f92;
+  --haf-orange: #ff9b52;
+  --haf-white: rgba(255, 255, 255, .96);
+  --haf-soft-white: rgba(255, 255, 255, .72);
+}
+
+.flow-stack {
+  background: #4ba5dc url("/assets/haf/energy-flow-v3.png") center / cover no-repeat;
+  color: white;
+  font-family: "PingFang SC", "Noto Sans SC", system-ui, sans-serif;
+}
+
+.flow-stack::before {
+  content: "";
+  position: absolute;
+  inset: -5%;
+  background: url("/assets/haf/energy-flow-v3.png") center / cover no-repeat;
+  opacity: .72;
+  animation: flow-drift 15s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+.flow-scenes { z-index: 2; }
+.flow-screen { background: #4ba5dc url("/assets/haf/energy-flow-v3.png") center / cover no-repeat; }
+.app-screen { height: 100%; background: transparent; }
+.keyboard-dock[data-visible="false"] { display: none; }
+.screen-content { position: relative; z-index: 1; min-height: 100%; box-sizing: border-box; padding: 36px 26px calc(var(--flow-footer-height) + var(--mobile-safe-area-height) + 26px); }
+
+button { font: inherit; -webkit-tap-highlight-color: transparent; }
+
+.bottom-nav {
+  height: 72px;
+  padding: 8px 12px calc(var(--mobile-safe-area-height) + 4px);
+  box-sizing: content-box;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  align-items: start;
+  background: rgba(255,255,255,.96);
+  border-top: 1px solid rgba(255,255,255,.96);
+  box-shadow: 0 -12px 36px rgba(19,91,155,.1);
+  backdrop-filter: blur(18px);
+}
+
+.bottom-nav button {
+  position: relative;
+  min-height: 48px;
+  border: 0;
+  background: transparent;
+  color: rgba(32,133,199,.9);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  font-size: 9px;
+}
+
+.bottom-nav button > svg { width: 21px; height: 21px; }
+.bottom-nav .ticket-entry { margin-top: -31px; gap: 6px; }
+.bottom-nav .ticket-entry i { width: 70px; height: 70px; border-radius: 50%; background: #168bd7; color: white; display: grid; place-items: center; box-shadow: 0 12px 30px rgba(11,104,178,.25); font-style: normal; }
+.bottom-nav .ticket-entry i svg { width: 29px; height: 29px; }
+.bottom-nav .ticket-entry span { color: rgba(110,110,110,.55); }
+.nav-with-badge b { position: absolute; top: -5px; left: 50%; min-width: 15px; height: 15px; margin-left: 4px; border-radius: 10px; background: var(--haf-orange); color: white; display: grid; place-items: center; font-size: 8px; }
+
+.immersive-screen { color: white; }
+.page-heading { margin-bottom: 21px; }
+.page-heading h1 { margin: 0; color: white; font-size: 31px; line-height: 1.1; font-weight: 750; letter-spacing: -.05em; text-shadow: 0 2px 18px rgba(8,58,109,.2); }
+.page-heading p { margin: 8px 0 0; color: rgba(255,255,255,.74); font-size: 12px; line-height: 1.5; }
+
+.step-row { margin: 0 1px 14px; display: flex; align-items: center; gap: 42px; }
+.step-row.compact { margin-bottom: 10px; }
+.step-row strong { font-size: 17px; letter-spacing: .08em; }
+.step-row span { display: flex; gap: 24px; }
+.step-row i { width: 10px; height: 10px; border-radius: 50%; background: rgba(255,255,255,.28); box-shadow: inset 0 0 0 1px rgba(255,255,255,.16); }
+.step-row i.active { background: white; box-shadow: 0 0 15px rgba(255,255,255,.52); }
+
+.flow-card {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.48);
+  background: rgba(12,65,108,.45);
+  box-shadow: inset 0 0 32px rgba(255,255,255,.07), 0 24px 54px rgba(8,71,132,.17);
+  backdrop-filter: blur(20px);
+}
+
+.flow-card::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: -9%;
+  background: url("/assets/haf/energy-flow-v3.png") 58% center / cover no-repeat;
+  opacity: .7;
+  animation: card-flow 12s ease-in-out infinite alternate;
+}
+
+.primary-button {
+  width: 100%;
+  min-height: 57px;
+  padding: 0 22px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(8,129,208,.93);
+  color: white;
+  box-shadow: 0 14px 30px rgba(8,88,156,.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 16px;
+  font-weight: 700;
+}
+.primary-button.secondary { border: 1px solid rgba(255,255,255,.56); background: rgba(20,85,131,.22); box-shadow: none; }
+
+.feeling-card { min-height: 540px; box-sizing: border-box; padding: 54px 24px 23px; border-radius: 29px; display: flex; flex-direction: column; }
+.card-copy small { display: block; margin-bottom: 9px; font-size: 25px; font-weight: 700; }
+.card-copy h2 { margin: 0; font-size: 29px; line-height: 1.18; letter-spacing: -.04em; }
+.card-copy p { margin: 12px 0 0; color: rgba(255,255,255,.72); font-size: 12px; }
+
+.energy-options { margin-top: 62px; display: flex; flex-direction: column; gap: 15px; }
+.energy-options button { min-height: 70px; padding: 0 22px; border: 1px solid rgba(255,255,255,.57); border-radius: 999px; background: rgba(31,90,132,.2); color: white; display: flex; align-items: center; gap: 17px; text-align: left; }
+.energy-options button > i { width: 28px; height: 28px; flex: 0 0 auto; border: 1px solid rgba(255,255,255,.56); border-radius: 50%; display: grid; place-items: center; font-style: normal; }
+.energy-options button > i svg { width: 18px; height: 18px; }
+.energy-options strong { font-size: 17px; }
+.energy-options button.selected { border-color: rgba(255,255,255,.98); background: rgba(255,145,78,.42); box-shadow: 0 0 0 1px rgba(255,255,255,.38), 0 0 27px rgba(255,136,71,.74), inset 0 0 24px rgba(255,220,177,.14); }
+.energy-options button.selected > i { border-color: white; box-shadow: 0 0 13px rgba(255,255,255,.55); }
+.card-actions { margin-top: auto; padding-top: 22px; display: flex; align-items: center; justify-content: space-between; }
+.card-actions > span { color: rgba(255,255,255,.7); font-size: 9px; }
+.card-actions > button { min-width: 118px; min-height: 46px; padding: 0 20px; border: 0; border-radius: 999px; background: rgba(10,140,219,.9); color: white; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px; font-weight: 700; }
+
+.compass-screen .screen-content { padding-left: 26px; padding-right: 26px; }
+.compass-screen .page-heading { margin-bottom: 11px; }
+.compass-card { height: 406px; border-radius: 28px; }
+.energy-map-shell { position: absolute; inset: 0; }
+.energy-map { position: absolute; inset: 44px 39px; touch-action: none; }
+.map-axis { position: absolute; background: rgba(255,255,255,.38); pointer-events: none; }
+.map-axis.horizontal { left: 0; right: 0; top: 50%; height: 1px; }
+.map-axis.vertical { top: 0; bottom: 0; left: 50%; width: 1px; }
+.orbit { position: absolute; left: 50%; top: 50%; border: 1px dashed rgba(255,255,255,.22); border-radius: 50%; transform: translate(-50%,-50%); pointer-events: none; }
+.orbit-one { width: 158px; height: 158px; }
+.orbit-two { width: 236px; height: 236px; }
+.map-label { position: absolute; z-index: 2; color: rgba(255,255,255,.88); font-size: 12px; font-weight: 650; }
+.map-label.top { top: 27px; left: 50%; transform: translateX(-50%); }
+.map-label.bottom { bottom: 23px; left: 50%; transform: translateX(-50%); }
+.map-label.left { left: 14px; top: 50%; width: 15px; transform: translateY(-50%); line-height: 1.55; }
+.map-label.right { right: 14px; top: 50%; width: 15px; transform: translateY(-50%); line-height: 1.55; }
+.energy-orb { position: absolute; z-index: 4; width: 86px; height: 86px; margin: -43px; object-fit: contain; pointer-events: none; filter: drop-shadow(0 0 15px rgba(255,255,255,.55)); }
+.instant-reading { min-height: 52px; display: flex; align-items: center; justify-content: center; gap: 8px; text-align: center; }
+.instant-reading svg { width: 21px; height: 21px; }
+.instant-reading strong { font-size: 14px; line-height: 1.55; }
+
+.insight-card { min-height: 385px; padding: 35px 27px 28px; box-sizing: border-box; border-radius: 29px; text-align: center; }
+.insight-card > small { color: rgba(255,255,255,.72); font-size: 10px; letter-spacing: .12em; }
+.insight-card > h2 { margin: 7px 0 3px; font-size: 58px; line-height: 1; letter-spacing: -.08em; }
+.insight-card > p { margin: 0; color: rgba(255,255,255,.78); font-size: 12px; }
+.chakra-focus { margin-top: 40px; padding: 20px 17px; border: 1px solid rgba(255,255,255,.34); border-radius: 22px; background: rgba(8,60,108,.25); }
+.chakra-dots { height: 25px; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 2px; }
+.chakra-dots svg { width: 24px; height: 24px; filter: drop-shadow(0 0 7px rgba(255,255,255,.2)); }
+.chakra-focus > span { display: block; color: rgba(255,255,255,.6); font-size: 9px; }
+.chakra-focus > strong { display: block; margin-top: 3px; font-size: 18px; }
+.chakra-focus > p { margin: 8px 0 0; font-size: 12px; line-height: 1.55; }
+.single-course { margin: 12px 0; padding: 9px; border: 1px solid rgba(255,255,255,.45); border-radius: 19px; background: rgba(19,74,116,.34); display: grid; grid-template-columns: 72px 1fr 38px; gap: 11px; align-items: center; backdrop-filter: blur(14px); }
+.single-course img { width: 72px; height: 72px; border-radius: 14px; object-fit: cover; }
+.single-course > div { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.single-course small { color: rgba(255,255,255,.62); font-size: 8px; }
+.single-course strong { font-size: 14px; }
+.single-course span { color: rgba(255,255,255,.65); font-size: 8px; }
+.single-course button { width: 38px; height: 38px; border: 1px solid rgba(255,255,255,.48); border-radius: 50%; background: rgba(255,255,255,.15); color: white; display: grid; place-items: center; }
+.quiet-action { width: 100%; margin-top: 11px; border: 0; background: transparent; color: rgba(255,255,255,.67); font-size: 11px; }
+
+.birth-screen .screen-content { display: flex; flex-direction: column; }
+.birth-card { margin-top: 28px; min-height: 480px; padding: 42px 24px 24px; border-radius: 29px; display: flex; flex-direction: column; }
+.birth-card > small { color: rgba(255,255,255,.65); font-size: 9px; }
+.birth-card > h2 { margin: 7px 0 35px; font-size: 34px; }
+.birth-fields { display: grid; grid-template-columns: 1.35fr .85fr .85fr; gap: 9px; }
+.birth-fields > div { padding: 9px; border: 1px solid rgba(255,255,255,.34); border-radius: 17px; background: rgba(9,67,113,.25); display: grid; grid-template-rows: auto 38px 52px 38px; text-align: center; }
+.birth-fields span { color: rgba(255,255,255,.62); font-size: 9px; }
+.birth-fields button { border: 0; background: transparent; color: white; font-size: 19px; }
+.birth-fields strong { align-self: center; font-size: 18px; }
+.birth-card .primary-button { margin-top: auto; }
+
+.courses-screen .screen-content { padding-left: 0; padding-right: 0; }
+.courses-screen .page-heading, .courses-screen > .screen-content > .primary-button { margin-left: 26px; margin-right: 26px; }
+.course-carousel { margin: 28px 0 20px; }
+.course-carousel-content { display: flex; gap: 14px; padding: 0 26px 9px; }
+.course-card { flex: 0 0 292px; overflow: hidden; border: 1px solid rgba(255,255,255,.48); border-radius: 25px; background: rgba(13,67,109,.46); box-shadow: 0 20px 44px rgba(9,70,126,.18); backdrop-filter: blur(18px); }
+.course-card > img { width: 100%; height: 245px; object-fit: cover; }
+.course-body { padding: 19px; }
+.course-body > small { color: rgba(255,255,255,.62); font-size: 8px; letter-spacing: .1em; }
+.course-body h2 { margin: 7px 0 9px; font-size: 23px; }
+.course-body p { color: rgba(255,255,255,.67); font-size: 10px; line-height: 1.55; }
+.course-body > div { margin-top: 17px; display: flex; align-items: center; justify-content: space-between; }
+.course-body b { font-size: 18px; }
+.course-body button { padding: 9px 15px; border: 1px solid rgba(255,255,255,.5); border-radius: 999px; background: rgba(255,255,255,.14); color: white; font-size: 10px; }
+
+.favorite-list { margin: 34px 0 22px; display: flex; flex-direction: column; gap: 10px; }
+.favorite-list article { padding: 10px; border: 1px solid rgba(255,255,255,.43); border-radius: 19px; background: rgba(14,70,111,.35); display: grid; grid-template-columns: 72px 1fr 40px; gap: 11px; align-items: center; backdrop-filter: blur(15px); }
+.favorite-list img { width: 72px; height: 72px; border-radius: 13px; object-fit: cover; }
+.favorite-list div { display: flex; flex-direction: column; gap: 5px; }
+.favorite-list strong { font-size: 14px; }
+.favorite-list span { color: rgba(255,255,255,.62); font-size: 9px; }
+.favorite-list button { border: 0; background: transparent; color: white; }
+
+@keyframes flow-drift {
+  from { transform: translate3d(-1.5%, -1%, 0) scale(1.02); }
+  to { transform: translate3d(2%, 1.5%, 0) scale(1.08); }
+}
+
+@keyframes card-flow {
+  from { transform: translate3d(-2%, -1%, 0) scale(1.03); }
+  to { transform: translate3d(3%, 2%, 0) scale(1.1); }
+}
+
+@media (max-width: 380px) {
+  .screen-content { padding-left: 21px; padding-right: 21px; }
+  .page-heading h1 { font-size: 29px; }
+  .feeling-card { min-height: 510px; padding: 42px 20px 20px; }
+  .energy-options { margin-top: 48px; }
+  .energy-options button { min-height: 64px; }
+  .compass-card { height: 382px; }
+  .energy-map { inset: 42px 35px; }
+  .orbit-two { width: 222px; height: 222px; }
+  .insight-card { min-height: 370px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flow-stack::before, .flow-card::before { animation: none; }
+}

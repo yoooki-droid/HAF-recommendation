@@ -1,0 +1,4 @@
+interface:
+  display_name: "HAF 灵数计算"
+  short_description: "计算生命路径数与个人日数字，并返回完整可复核的计算轨迹"
+  default_prompt: "Use $haf-numerology to calculate a life-path and personal-day profile with a complete trace."

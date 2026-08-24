@@ -1,0 +1,36 @@
+{
+  "model_version": "haf.chakra-compass.v0.1",
+  "sigma": 0.75,
+  "weights": {
+    "compass": 0.45,
+    "life_path": 0.35,
+    "personal_day": 0.20
+  },
+  "score": {
+    "floor": 20,
+    "span": 75
+  },
+  "chakras": {
+    "root": {"zh": "海底轮", "sanskrit": "Muladhara", "anchor": {"x": -0.20, "y": 0.45}, "themes": ["安定", "落地", "身体支持"]},
+    "sacral": {"zh": "生殖轮", "sanskrit": "Svadhisthana", "anchor": {"x": 0.25, "y": 0.50}, "themes": ["流动", "感受", "创造"]},
+    "solar_plexus": {"zh": "太阳神经丛", "sanskrit": "Manipura", "anchor": {"x": 0.65, "y": 0.70}, "themes": ["边界", "选择", "行动"]},
+    "heart": {"zh": "心轮", "sanskrit": "Anahata", "anchor": {"x": 0.00, "y": 0.00}, "themes": ["接纳", "连接", "内外整合"]},
+    "throat": {"zh": "喉轮", "sanskrit": "Vishuddha", "anchor": {"x": 0.65, "y": -0.15}, "themes": ["表达", "倾听", "真实"]},
+    "third_eye": {"zh": "眉心轮", "sanskrit": "Ajna", "anchor": {"x": -0.65, "y": -0.55}, "themes": ["洞察", "辨识", "直觉"]},
+    "crown": {"zh": "顶轮", "sanskrit": "Sahasrara", "anchor": {"x": -0.25, "y": -0.85}, "themes": ["意义", "空间", "整体感"]}
+  },
+  "number_affinity": {
+    "1": {"root": 0.60, "sacral": 0.35, "solar_plexus": 0.95, "heart": 0.30, "throat": 0.45, "third_eye": 0.25, "crown": 0.20},
+    "2": {"root": 0.45, "sacral": 0.65, "solar_plexus": 0.30, "heart": 0.90, "throat": 0.45, "third_eye": 0.45, "crown": 0.30},
+    "3": {"root": 0.30, "sacral": 0.75, "solar_plexus": 0.50, "heart": 0.55, "throat": 0.95, "third_eye": 0.35, "crown": 0.25},
+    "4": {"root": 0.95, "sacral": 0.35, "solar_plexus": 0.65, "heart": 0.40, "throat": 0.30, "third_eye": 0.30, "crown": 0.20},
+    "5": {"root": 0.35, "sacral": 0.90, "solar_plexus": 0.60, "heart": 0.40, "throat": 0.75, "third_eye": 0.40, "crown": 0.30},
+    "6": {"root": 0.55, "sacral": 0.55, "solar_plexus": 0.35, "heart": 0.98, "throat": 0.45, "third_eye": 0.35, "crown": 0.40},
+    "7": {"root": 0.30, "sacral": 0.25, "solar_plexus": 0.30, "heart": 0.45, "throat": 0.40, "third_eye": 0.98, "crown": 0.82},
+    "8": {"root": 0.75, "sacral": 0.40, "solar_plexus": 0.98, "heart": 0.35, "throat": 0.50, "third_eye": 0.30, "crown": 0.25},
+    "9": {"root": 0.35, "sacral": 0.45, "solar_plexus": 0.35, "heart": 0.85, "throat": 0.45, "third_eye": 0.68, "crown": 0.90},
+    "11": {"root": 0.25, "sacral": 0.35, "solar_plexus": 0.35, "heart": 0.60, "throat": 0.50, "third_eye": 0.98, "crown": 0.92},
+    "22": {"root": 0.88, "sacral": 0.35, "solar_plexus": 0.92, "heart": 0.45, "throat": 0.45, "third_eye": 0.50, "crown": 0.55},
+    "33": {"root": 0.45, "sacral": 0.50, "solar_plexus": 0.35, "heart": 1.00, "throat": 0.58, "third_eye": 0.50, "crown": 0.72}
+  }
+}

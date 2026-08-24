@@ -1,0 +1,4 @@
+interface:
+  display_name: "HAF 三课推荐"
+  short_description: "根据今日能量结果筛选三节多样化课程，并返回可追溯的契合理由"
+  default_prompt: "Use $haf-course-recommendation to select three grounded and diverse demo courses from an HAF daily-energy insight."

@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#eaf7ff" />
+    <title>探索本心 · 数据看板</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="ambient ambient-blue" aria-hidden="true"></div>
+    <div class="ambient ambient-warm" aria-hidden="true"></div>
+    <main class="dashboard-shell">
+      <header class="dashboard-header">
+        <div>
+          <div class="brand-line"><span class="brand-mark">HAF</span><span>探索本心</span></div>
+          <h1>数据看板</h1>
+          <p>看见有多少人来到这里，又把多少份真实的感觉留进收藏。</p>
+        </div>
+        <div class="live-state" aria-live="polite"><i></i><span>实时更新</span><time id="updated-at">等待数据</time></div>
+      </header>
+
+      <nav class="range-switcher" aria-label="统计时间范围">
+        <button data-days="1">今天</button>
+        <button data-days="7" class="active">近 7 天</button>
+        <button data-days="30">近 30 天</button>
+        <button data-days="all">全部</button>
+      </nav>
+
+      <section class="metric-grid" aria-label="核心指标">
+        <article class="metric-card metric-primary">
+          <span>访问用户数</span>
+          <strong id="visitor-count">—</strong>
+          <small>打开过探索本心的独立用户</small>
+        </article>
+        <article class="metric-card">
+          <span>收藏用户数</span>
+          <strong id="favoriter-count">—</strong>
+          <small>成功收藏过课程的独立用户</small>
+        </article>
+        <article class="metric-card metric-warm">
+          <span>收藏总量</span>
+          <strong id="favorite-total">—</strong>
+          <small>来自这个模块的成功收藏次数</small>
+        </article>
+      </section>
+
+      <section class="insight-grid">
+        <article class="panel trend-panel">
+          <div class="panel-heading">
+            <div><span>每日变化</span><h2>访问与收藏趋势</h2></div>
+            <div class="legend"><span><i class="blue-dot"></i>访问用户</span><span><i class="warm-dot"></i>收藏用户</span></div>
+          </div>
+          <div id="trend-chart" class="trend-chart" role="img" aria-label="访问与收藏趋势图"></div>
+        </article>
+
+        <article class="panel conversion-panel">
+          <span>访问后收藏率</span>
+          <strong id="conversion-rate">—</strong>
+          <div class="conversion-track"><i id="conversion-fill"></i></div>
+          <p id="conversion-copy">有数据后，这里会显示访问者中有多少人完成过收藏。</p>
+        </article>
+      </section>
+
+      <section class="panel course-panel">
+        <div class="panel-heading">
+          <div><span>课程收藏</span><h2>用户把哪些课程留了下来</h2></div>
+          <span id="course-summary" class="course-summary">暂无收藏</span>
+        </div>
+        <div class="course-table-wrap">
+          <table>
+            <thead><tr><th>课程</th><th>收藏用户数</th><th>收藏次数</th></tr></thead>
+            <tbody id="course-rows"></tbody>
+          </table>
+          <div id="course-empty" class="empty-state">
+            <span class="empty-orb"></span>
+            <strong>还没有收藏数据</strong>
+            <p>打开 H5 并收藏一节课程，这里会在几秒内出现变化。</p>
+          </div>
+        </div>
+      </section>
+
+      <footer>数据来自探索本心模块 · 本地版本每 5 秒同步一次</footer>
+    </main>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
