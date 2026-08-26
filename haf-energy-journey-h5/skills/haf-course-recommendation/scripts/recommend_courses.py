@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 SCHEMA_VERSION = "haf.course-recommendations.v1"
-RECOMMENDATION_VERSION = "haf.course-ranking.v1"
+RECOMMENDATION_VERSION = "haf.course-ranking.v2-primary-chakra-gate"
 WEIGHTS = {
     "chakra": 0.35,
     "compass": 0.25,
@@ -220,13 +220,18 @@ def recommend(
     validate_inputs(insight, catalog)
     recent = recent_course_ids or set()
     excluded = exclude_course_ids or set()
-    eligible = [
+    available = [
         course
         for course in catalog["courses"]
         if course["status"] == "published" and course["course_id"] not in excluded
     ]
+    eligible = [
+        course
+        for course in available
+        if insight["primary_chakra"]["id"] in course["chakra_tags"]
+    ]
     if len(eligible) < 3:
-        raise ValueError("at least three eligible published courses are required")
+        raise ValueError("at least three published courses matching the primary chakra are required")
 
     candidates = [score_course(insight, course, recent) for course in eligible]
     selected: list[dict[str, Any]] = []

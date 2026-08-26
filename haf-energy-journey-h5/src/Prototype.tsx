@@ -550,14 +550,23 @@ function recommendCourses(
     ? 1
     : insight.poles.active > insight.poles.calm ? 0.5 : 0;
   const targetDuration = targetIntensity === 1 ? 90 : targetIntensity === 0.5 ? 60 : 30;
-  const freshCourses = activeCourses.filter((course) => !recentIds.has(course.course_id));
+  const primaryChakraCourses = activeCourses.filter((course) => (
+    course.chakra_tags.includes(insight.primaryChakra.id)
+  ));
+  const recentCourseIds = [...recentIds];
+  const lastShownIds = new Set(recentCourseIds.slice(-3));
+  const freshCourses = primaryChakraCourses.filter((course) => !recentIds.has(course.course_id));
   const recentOrder = new Map([...recentIds].map((id, index) => [id, index]));
-  const rolloverCourses = activeCourses
-    .filter((course) => recentIds.has(course.course_id))
+  const rolloverCourses = primaryChakraCourses
+    .filter((course) => recentIds.has(course.course_id) && !lastShownIds.has(course.course_id))
     .sort((a, b) => (recentOrder.get(a.course_id) ?? 0) - (recentOrder.get(b.course_id) ?? 0));
+  const immediateRepeatCourses = primaryChakraCourses.filter((course) => lastShownIds.has(course.course_id));
+  const nonImmediateCandidates = [...freshCourses, ...rolloverCourses];
   const candidateCourses = freshCourses.length >= 3
     ? freshCourses
-    : [...freshCourses, ...rolloverCourses.slice(0, Math.max(12, 3 - freshCourses.length))];
+    : nonImmediateCandidates.length >= 3
+      ? nonImmediateCandidates
+      : [...nonImmediateCandidates, ...immediateRepeatCourses];
   const scoreCourse = (course: CatalogCourse) => {
     const primaryMatch = course.chakra_tags.includes(insight.primaryChakra.id) ? 1 : 0;
     const secondaryMatch = course.chakra_tags.includes(insight.secondaryChakra.id) ? 1 : 0;

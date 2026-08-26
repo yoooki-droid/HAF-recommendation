@@ -1,10 +1,16 @@
 import { chromium } from "@playwright/test";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 
 const baseURL = process.env.HAF_VISUAL_QA_URL ?? "http://127.0.0.1:4173/";
 const outputDir = path.resolve("qa/visual-refresh-2026-08-26");
+const historicalCatalog = JSON.parse(await readFile(path.resolve("qa/course-recall-2025/catalog-normalized.json"), "utf8"));
+const historicalValidationTime = Date.parse("2025-10-24T08:00:00+08:00");
+const activeCatalogCourses = historicalCatalog.courses.filter((course) => (
+  course.status === "published"
+  && course.sessions.some((session) => Date.parse(`${session.end_at.replace(" ", "T")}+08:00`) > historicalValidationTime)
+));
 await mkdir(outputDir, { recursive: true });
 
 const browser = await chromium.launch({ headless: true });
@@ -89,7 +95,7 @@ await captureJourneyScreen("compass-screen", "compass");
 const compass = page.locator(".compass-map");
 const compassBox = await compass.boundingBox();
 if (!compassBox) throw new Error("Compass did not render");
-await page.mouse.click(compassBox.x + compassBox.width * 0.8, compassBox.y + compassBox.height * 0.42);
+await page.mouse.click(compassBox.x + compassBox.width * 0.8, compassBox.y + compassBox.height * 0.68);
 await page.getByTestId("compass-screen").getByRole("button", { name: "完成感应" }).click();
 await captureJourneyScreen("synthesis-screen", "synthesis");
 const resultScreen = page.getByTestId("result-screen");
@@ -100,6 +106,35 @@ await captureJourneyScreen("result-screen", "result");
 
 const cards = page.getByTestId("course-card");
 if (await cards.count() !== 3) throw new Error(`Expected exactly 3 course cards, got ${await cards.count()}`);
+const chakraIdByLabel = {
+  海底轮: "root",
+  生殖轮: "sacral",
+  太阳神经丛: "solar_plexus",
+  心轮: "heart",
+  喉轮: "throat",
+  眉心轮: "third_eye",
+  顶轮: "crown",
+};
+const primaryChakraLabel = await page.locator(".energy-facets > span").nth(2).locator("strong").textContent();
+const primaryChakraId = chakraIdByLabel[primaryChakraLabel?.trim()];
+if (primaryChakraId !== "solar_plexus") {
+  throw new Error(`Expected the recommendation regression fixture to resolve to solar_plexus, got ${primaryChakraId}`);
+}
+const primaryPoolIds = new Set(activeCatalogCourses
+  .filter((course) => course.chakra_tags.includes(primaryChakraId))
+  .map((course) => course.course_id));
+const assertPrimaryChakraBatch = async () => {
+  const courseIds = await cards.evaluateAll((elements) => elements.map((element) => element.getAttribute("data-course-id")));
+  if (courseIds.length !== 3 || new Set(courseIds).size !== 3) {
+    throw new Error(`Expected three unique courses in a batch, got ${courseIds.join(", ")}`);
+  }
+  const unrelated = courseIds.find((id) => !id || !primaryPoolIds.has(id));
+  if (unrelated) {
+    throw new Error(`Course ${unrelated} does not match displayed primary chakra ${primaryChakraId}`);
+  }
+  return courseIds;
+};
+const firstCourseIds = await assertPrimaryChakraBatch();
 const firstCardBox = await cards.first().boundingBox();
 if (!firstCardBox || Math.abs(firstCardBox.height - 285) > 1) {
   throw new Error(`Expected compact 285px course card, got ${firstCardBox?.height}`);
@@ -134,8 +169,8 @@ const bottomActionBuffer = reSenseBox && resultModuleBox
 if (bottomActionBuffer < 70) {
   throw new Error(`Expected at least 70px below re-sense action, got ${bottomActionBuffer}`);
 }
-const seenCourseIds = new Set(await cards.evaluateAll((elements) => elements.map((element) => element.getAttribute("data-course-id"))));
-const firstTitles = await page.locator(".course-card h3").allTextContents();
+const seenCourseIds = new Set(firstCourseIds);
+let previousBatchIds = new Set(firstCourseIds);
 const rail = page.locator(".course-rail");
 const railBox = await rail.boundingBox();
 if (!railBox) throw new Error("Course carousel did not render");
@@ -154,21 +189,20 @@ await captureJourneyScreen("favorites-screen", "favorites");
 await page.getByTestId("favorites-screen").getByRole("button", { name: /回到今日能量/ }).click();
 await resultScreen.waitFor({ state: "visible" });
 
-let refreshedTitles = firstTitles;
 for (let refreshIndex = 0; refreshIndex < 4; refreshIndex += 1) {
   await page.getByTestId("result-screen").getByRole("button", { name: "换一批" }).click();
   await page.waitForTimeout(150);
-  const refreshedIds = await cards.evaluateAll((elements) => elements.map((element) => element.getAttribute("data-course-id")));
-  const repeatedId = refreshedIds.find((id) => id && seenCourseIds.has(id));
-  if (repeatedId) throw new Error(`Course ${repeatedId} repeated before the unseen catalog pool was exhausted`);
+  const refreshedIds = await assertPrimaryChakraBatch();
+  const immediateRepeat = refreshedIds.find((id) => id && previousBatchIds.has(id));
+  if (immediateRepeat) throw new Error(`Course ${immediateRepeat} repeated from the immediately previous batch`);
   refreshedIds.forEach((id) => { if (id) seenCourseIds.add(id); });
-  refreshedTitles = await page.locator(".course-card h3").allTextContents();
+  previousBatchIds = new Set(refreshedIds);
 }
 const persistedCourseHistory = await page.evaluate(() => JSON.parse(
   window.localStorage.getItem("haf-journey-recent-courses:2025-validation-v1") ?? "[]",
 ));
-if (persistedCourseHistory.length !== 15) {
-  throw new Error(`Expected 15 persisted unique course IDs after five batches, got ${persistedCourseHistory.length}`);
+if (persistedCourseHistory.length !== primaryPoolIds.size || seenCourseIds.size !== primaryPoolIds.size) {
+  throw new Error(`Expected all ${primaryPoolIds.size} primary-chakra courses to be exhausted before recycling, got ${seenCourseIds.size} seen and ${persistedCourseHistory.length} persisted`);
 }
 await page.getByTestId("result-screen").getByRole("button", { name: "重新感应", exact: true }).click();
 await page.getByTestId("compass-screen").waitFor({ state: "visible" });
@@ -216,7 +250,9 @@ const summary = {
     carousel: railScrollLeft > 0 ? "passed" : "failed",
     favorite: "passed",
     favoritesEntry: "passed",
-    refresh: firstTitles.join("|") !== refreshedTitles.join("|") && seenCourseIds.size === 15 ? "no-repeats-across-5-batches" : "failed",
+    refresh: seenCourseIds.size === primaryPoolIds.size ? "primary-matched-without-consecutive-batch-repeats" : "failed",
+    primaryChakra: primaryChakraId,
+    primaryChakraPoolSize: primaryPoolIds.size,
     persistedCourseHistory: persistedCourseHistory.length,
     reSense: "passed",
     editProfile: "passed",

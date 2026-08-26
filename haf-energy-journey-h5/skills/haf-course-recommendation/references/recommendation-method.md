@@ -4,15 +4,18 @@
 
 Return three relevant but not repetitive courses. Course metadata is the source of truth. The energy insight supplies only the user's current reflective context.
 
-## Eligibility
+## Eligibility v2
 
 Include a course only when:
 
 - `status` is `published`;
 - required display fields exist;
 - it is not explicitly excluded by the caller.
+- its `chakra_tags` include the insight's primary chakra.
 
-Favorites remain eligible. A user may want to revisit a saved course. Recently shown courses receive a novelty reduction but are not automatically removed.
+Primary-chakra relevance is a contextual hard gate, not a soft score. Freshness and diversity may reorder courses only inside that relevant pool; they may never introduce a course tagged only for another chakra. Favorites remain eligible. A user may want to revisit a saved course. Recently shown courses receive a novelty reduction but are not automatically removed.
+
+For `换一批`, exhaust unseen primary-matching courses first. If fewer than three unseen courses remain, recycle the oldest primary-matching courses while excluding the immediately previous batch whenever the matching pool is large enough. Relevance outranks novelty.
 
 ## Base score v1
 

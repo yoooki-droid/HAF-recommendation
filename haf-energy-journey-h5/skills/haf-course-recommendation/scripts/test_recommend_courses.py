@@ -67,6 +67,20 @@ class CourseRecommendationTests(unittest.TestCase):
         self.assertIn(insight["primary_chakra"]["id"], top_course["chakra_tags"])
         self.assertIn(insight["keyword"]["id"], top_course["keyword_tags"])
 
+    def test_every_course_matches_primary_chakra(self) -> None:
+        insight = release_insight()
+        result = RECOMMENDER.recommend(insight, CATALOG)
+        for item in result["recommendations"]:
+            self.assertIn(insight["primary_chakra"]["id"], item["course"]["chakra_tags"])
+
+    def test_solar_plexus_never_falls_back_to_root_only_course(self) -> None:
+        insight = release_insight()
+        insight["primary_chakra"] = {"id": "solar_plexus", "zh": "太阳神经丛"}
+        insight["secondary_chakra"] = {"id": "root", "zh": "海底轮"}
+        result = RECOMMENDER.recommend(insight, CATALOG)
+        for item in result["recommendations"]:
+            self.assertIn("solar_plexus", item["course"]["chakra_tags"])
+
     def test_reasons_are_grounded_in_course_fit_statement(self) -> None:
         result = RECOMMENDER.recommend(release_insight(), CATALOG)
         for item in result["recommendations"]:

@@ -16,6 +16,7 @@
 - Pass 5: compared the supplied saved-entry/card crop with the latest full result capture. Added balanced breathing room around `已收藏`, shifted the card and bottom actions down by 5px, and forced a 22px GPU-safe clip so both lower corners remain visibly rounded beneath the blur layer.
 - Pass 6: compared the same result crop and latest result capture together. Replaced the separate saved text link with a 52px circular bookmark immediately left of a 278 × 52 `换一批` button, then aligned the three facet footers to an identical vertical position.
 - Pass 7: compared both supplied full-screen references with all eight route captures together. Reused the same real red-blue-orange raster as two full-screen atmospheric layers on every route, added low-amplitude 25s/31s breathing motion, and retained contrast overlays where content density requires them. The motion is disabled by `prefers-reduced-motion`.
+- Pass 8: replayed the reported `太阳神经丛` result as a recommendation regression fixture. All five three-course batches stayed inside the seven-course primary-chakra pool, exhausted every matching course before recycling, and never repeated a course from the immediately previous batch. A course tagged only for `海底轮` is no longer eligible in this state.
 
 ## Final findings
 
@@ -34,7 +35,8 @@
 - Exactly three catalog-backed course cards — passed.
 - Horizontal carousel drag and favorite state — passed.
 - `修改档案`, circular saved-experiences action, narrower `换一批`, and `重新感应` — passed.
-- Recommendation novelty: 15 unique courses across five consecutive batches — passed.
+- Recommendation relevance: every returned course includes the displayed primary chakra — passed.
+- Solar-plexus refresh regression: all 7 matching courses exhausted across five batches; no consecutive-batch repeats — passed.
 - Compact card height: 285px — passed.
 - Circular saved action: 52 × 52; refresh action: 278 × 52 — passed.
 - Three facet footer tops: 485px / 485px / 485px — passed.
