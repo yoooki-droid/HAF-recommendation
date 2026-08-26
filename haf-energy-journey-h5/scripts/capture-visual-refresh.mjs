@@ -79,6 +79,24 @@ const firstCardBox = await cards.first().boundingBox();
 if (!firstCardBox || Math.abs(firstCardBox.height - 285) > 1) {
   throw new Error(`Expected compact 285px course card, got ${firstCardBox?.height}`);
 }
+const cardClipping = await cards.first().evaluate((element) => {
+  const style = window.getComputedStyle(element);
+  return { borderRadius: style.borderRadius, clipPath: style.clipPath };
+});
+if (cardClipping.borderRadius !== "22px" || cardClipping.clipPath === "none") {
+  throw new Error(`Expected rounded card clipping, got ${JSON.stringify(cardClipping)}`);
+}
+const facetsBox = await page.locator(".energy-facets").boundingBox();
+const savedEntryBox = await page.locator(".recommendation-saved").boundingBox();
+const savedEntryTopGap = facetsBox && savedEntryBox
+  ? savedEntryBox.y - (facetsBox.y + facetsBox.height)
+  : 0;
+const savedEntryBottomGap = savedEntryBox && firstCardBox
+  ? firstCardBox.y - (savedEntryBox.y + savedEntryBox.height)
+  : 0;
+if (savedEntryTopGap < 6 || savedEntryBottomGap < 6) {
+  throw new Error(`Expected breathing room around saved entry, got ${savedEntryTopGap}px / ${savedEntryBottomGap}px`);
+}
 const reSenseBox = await resultScreen.getByRole("button", { name: "重新感应", exact: true }).boundingBox();
 const resultModuleBox = await resultModule.boundingBox();
 const bottomActionBuffer = reSenseBox && resultModuleBox
@@ -142,6 +160,8 @@ const summary = {
     reSense: "passed",
     editProfile: "passed",
     compactCardHeight: firstCardBox.height,
+    roundedCardClipping: cardClipping,
+    savedEntrySpacing: { top: savedEntryTopGap, bottom: savedEntryBottomGap },
     bottomActionBuffer,
   },
   consoleErrors,

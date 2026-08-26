@@ -1,9 +1,9 @@
 # Design QA
 
-- Source visual truth: `/Users/at_lp007/Documents/HAF_miniapp/ref/iPhone 16 - 5.png`, `/Users/at_lp007/Documents/HAF_miniapp/ref/iPhone 16 - 6.png`, `/Users/at_lp007/Documents/HAF_miniapp/ref/result-card-compact-ios-buffer.png`, and Figma Octave node `10578:5067`.
+- Source visual truth: `/Users/at_lp007/Documents/HAF_miniapp/ref/iPhone 16 - 5.png`, `/Users/at_lp007/Documents/HAF_miniapp/ref/iPhone 16 - 6.png`, `/Users/at_lp007/Documents/HAF_miniapp/ref/result-card-compact-ios-buffer.png`, `/Users/at_lp007/Documents/HAF_miniapp/ref/result-saved-spacing-rounded-card.png`, and Figma Octave node `10578:5067`.
 - Implementation: local HAF mobile prototype at `http://127.0.0.1:4173/`.
 - Intended viewport: full-screen app-owned 393 × 852 mobile view inside the protected iPhone runtime. Backgrounds paint behind the status bar and home indicator; readable controls keep safe-area clearance.
-- Source pixels: 786 × 1704 for each supplied PNG; Figma export 786 × 1704.
+- Source pixels: primary screen references 786 × 1704; focused result references 718 × 536 and 760 × 690; Figma export 786 × 1704.
 - Implementation screenshots: `qa/visual-refresh-2026-08-26/profile-implementation.png` and `qa/visual-refresh-2026-08-26/result-implementation.png`, each 393 × 852 CSS pixels at device scale factor 1.
 - State: profile and result screens captured after the full-screen and compact-card revisions.
 
@@ -13,6 +13,7 @@
 - Pass 2: converted every route to an edge-to-edge 393 × 852 module, added platform safe-area spacing, moved the source raster to the Figma-like blue/orange crop, and moved the screenshot pointer outside the phone.
 - Pass 3: compared both supplied references, both implementation captures, and the compact-card screenshot together. Reduced recommendation cards from 330px to 285px and moved both result actions upward, leaving more than 70px below `重新感应` for iOS system actions.
 - Pass 4: compared the focused compact-card reference with the revised 393 × 852 result capture. Added a softened, blurred image haze below the card copy, moved `已收藏` to the recommendation region's upper-right edge, renamed the profile action to `修改档案`, and verified five consecutive recommendation batches without a repeated course.
+- Pass 5: compared the supplied saved-entry/card crop with the latest full result capture. Added balanced breathing room around `已收藏`, shifted the card and bottom actions down by 5px, and forced a 22px GPU-safe clip so both lower corners remain visibly rounded beneath the blur layer.
 
 ## Final findings
 
@@ -32,6 +33,8 @@
 - `修改档案`, relocated `已收藏`, `换一批`, and `重新感应` — passed.
 - Recommendation novelty: 15 unique courses across five consecutive batches — passed.
 - Compact card height: 285px — passed.
+- Saved-entry top and bottom spacing: at least 6px — passed.
+- Card top and bottom rounding: 22px clip — passed.
 - Bottom action buffer: at least 70px — passed.
 - Keyboard-aware city input and semantic button labels remain present.
 

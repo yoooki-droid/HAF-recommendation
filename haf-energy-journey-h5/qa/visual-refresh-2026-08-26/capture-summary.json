@@ -12,7 +12,7 @@
     "height": 852
   },
   "module": {
-    "x": 825.72802734375,
+    "x": 828.4432373046875,
     "y": 174,
     "width": 393,
     "height": 852
@@ -31,7 +31,15 @@
     "reSense": "passed",
     "editProfile": "passed",
     "compactCardHeight": 285,
-    "bottomActionBuffer": 90
+    "roundedCardClipping": {
+      "borderRadius": "22px",
+      "clipPath": "inset(0px round 22px)"
+    },
+    "savedEntrySpacing": {
+      "top": 7,
+      "bottom": 9
+    },
+    "bottomActionBuffer": 85
   },
   "consoleErrors": [
     "Failed to load resource: net::ERR_CONNECTION_REFUSED",
