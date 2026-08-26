@@ -12,20 +12,63 @@
     "height": 852
   },
   "module": {
-    "x": 828.4432373046875,
+    "x": 896.5,
     "y": 174,
     "width": 393,
     "height": 852
   },
   "screenshots": {
+    "loading": "/Users/at_lp007/Documents/HAF_miniapp/haf-energy-journey-h5/qa/visual-refresh-2026-08-26/loading-implementation.png",
+    "welcome": "/Users/at_lp007/Documents/HAF_miniapp/haf-energy-journey-h5/qa/visual-refresh-2026-08-26/welcome-implementation.png",
     "profile": "/Users/at_lp007/Documents/HAF_miniapp/haf-energy-journey-h5/qa/visual-refresh-2026-08-26/profile-implementation.png",
-    "result": "/Users/at_lp007/Documents/HAF_miniapp/haf-energy-journey-h5/qa/visual-refresh-2026-08-26/result-implementation.png"
+    "compass": "/Users/at_lp007/Documents/HAF_miniapp/haf-energy-journey-h5/qa/visual-refresh-2026-08-26/compass-implementation.png",
+    "synthesis": "/Users/at_lp007/Documents/HAF_miniapp/haf-energy-journey-h5/qa/visual-refresh-2026-08-26/synthesis-implementation.png",
+    "result": "/Users/at_lp007/Documents/HAF_miniapp/haf-energy-journey-h5/qa/visual-refresh-2026-08-26/result-implementation.png",
+    "favorites": "/Users/at_lp007/Documents/HAF_miniapp/haf-energy-journey-h5/qa/visual-refresh-2026-08-26/favorites-implementation.png",
+    "return": "/Users/at_lp007/Documents/HAF_miniapp/haf-energy-journey-h5/qa/visual-refresh-2026-08-26/return-implementation.png"
+  },
+  "sharedBackgrounds": {
+    "loading": [
+      "/assets/haf/visual-refresh/energy-gradient.jpeg",
+      "/assets/haf/visual-refresh/energy-gradient.jpeg"
+    ],
+    "welcome": [
+      "/assets/haf/visual-refresh/energy-gradient.jpeg",
+      "/assets/haf/visual-refresh/energy-gradient.jpeg"
+    ],
+    "profile": [
+      "/assets/haf/visual-refresh/energy-gradient.jpeg",
+      "/assets/haf/visual-refresh/energy-gradient.jpeg"
+    ],
+    "compass": [
+      "/assets/haf/visual-refresh/energy-gradient.jpeg",
+      "/assets/haf/visual-refresh/energy-gradient.jpeg"
+    ],
+    "synthesis": [
+      "/assets/haf/visual-refresh/energy-gradient.jpeg",
+      "/assets/haf/visual-refresh/energy-gradient.jpeg"
+    ],
+    "result": [
+      "/assets/haf/visual-refresh/energy-gradient.jpeg",
+      "/assets/haf/visual-refresh/energy-gradient.jpeg"
+    ],
+    "favorites": [
+      "/assets/haf/visual-refresh/energy-gradient.jpeg",
+      "/assets/haf/visual-refresh/energy-gradient.jpeg"
+    ],
+    "return": [
+      "/assets/haf/visual-refresh/energy-gradient.jpeg",
+      "/assets/haf/visual-refresh/energy-gradient.jpeg"
+    ]
   },
   "interactions": {
+    "animatedBackground": "passed",
+    "reducedMotion": "passed",
     "profileControls": "passed",
     "primaryCTA": "passed",
     "carousel": "passed",
     "favorite": "passed",
+    "favoritesEntry": "passed",
     "refresh": "no-repeats-across-5-batches",
     "persistedCourseHistory": 15,
     "reSense": "passed",
@@ -35,11 +78,24 @@
       "borderRadius": "22px",
       "clipPath": "inset(0px round 22px)"
     },
-    "savedEntrySpacing": {
-      "top": 7,
-      "bottom": 9
+    "facetFooterAlignment": [
+      485,
+      485,
+      485
+    ],
+    "savedAction": {
+      "x": 530,
+      "y": 850,
+      "width": 52,
+      "height": 52
     },
-    "bottomActionBuffer": 85
+    "refreshAction": {
+      "x": 592,
+      "y": 850,
+      "width": 278,
+      "height": 52
+    },
+    "bottomActionBuffer": 94
   },
   "consoleErrors": [
     "Failed to load resource: net::ERR_CONNECTION_REFUSED",

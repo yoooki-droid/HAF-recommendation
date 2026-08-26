@@ -830,19 +830,15 @@ function useJourney() {
 function AmbientEnergy() {
   return (
     <div className="energy-atmosphere" aria-hidden="true">
-      <motion.img
+      <img
         className="ambient-flow ambient-flow-primary"
-        src="/assets/haf/energy-flow-v3.png"
+        src="/assets/haf/visual-refresh/energy-gradient.jpeg"
         alt=""
-        animate={{ x: [0, 9, -5, 0], y: [-8, 8, -4, -8], scale: [1.03, 1.085, 1.04, 1.03] }}
-        transition={{ duration: 16, repeat: Infinity, ease: "easeInOut" }}
       />
-      <motion.img
+      <img
         className="ambient-flow ambient-flow-soft"
-        src="/assets/haf/energy-flow-v3.png"
+        src="/assets/haf/visual-refresh/energy-gradient.jpeg"
         alt=""
-        animate={{ x: [7, -8, 4, 7], y: [11, -7, 5, 11], scale: [1.12, 1.04, 1.09, 1.12], opacity: [0.11, 0.24, 0.15, 0.11] }}
-        transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
       />
     </div>
   );
@@ -1193,9 +1189,6 @@ function ResultScreen() {
         </section>
         <section className="recommendations">
           <h2 className="visually-hidden">此刻与你契合的体验</h2>
-          <button className="recommendation-saved" onClick={() => flow.push(makeScreen("favorites"))}>
-            已收藏{favorites.length > 0 ? ` ${favorites.length}` : ""}
-          </button>
           <Carousel className="course-rail" contentClassName="course-track" ariaLabel="此刻与你契合的体验">
             {orderedCourses.map((course) => {
               const saved = favorites.includes(course.id);
@@ -1215,7 +1208,13 @@ function ResultScreen() {
           </Carousel>
         </section>
         <footer className="result-actions">
-          <button className="result-refresh" onClick={refreshCourses}>换一批</button>
+          <div className="result-primary-actions">
+            <button className="result-saved-action" onClick={() => flow.push(makeScreen("favorites"))} aria-label={`查看已收藏${favorites.length ? ` ${favorites.length}` : ""}`}>
+              <BookmarkIcon />
+              {favorites.length > 0 && <span>{favorites.length}</span>}
+            </button>
+            <button className="result-refresh" onClick={refreshCourses}>换一批</button>
+          </div>
           <button className="result-resense" onClick={() => flow.pop()}>重新感应</button>
         </footer>
       </div>

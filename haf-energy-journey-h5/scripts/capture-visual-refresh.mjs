@@ -11,9 +11,12 @@ const browser = await chromium.launch({ headless: true });
 const context = await browser.newContext({
   viewport: { width: 1400, height: 1200 },
   deviceScaleFactor: 1,
+  reducedMotion: "no-preference",
 });
 const page = await context.newPage();
 const consoleErrors = [];
+const screenshots = {};
+const sharedBackgrounds = {};
 page.on("console", (message) => {
   if (message.type() === "error") consoleErrors.push(message.text());
 });
@@ -31,9 +34,34 @@ await page.addInitScript(() => {
   window.localStorage.setItem("haf-journey-recent-courses:2025-validation-v1", JSON.stringify([]));
 });
 
+async function captureJourneyScreen(testId, key, targetPage = page) {
+  const screen = targetPage.getByTestId(testId);
+  await screen.waitFor({ state: "visible", timeout: 8_000 });
+  const journeyModule = screen.locator("xpath=ancestor::section[@data-testid='journey-module']");
+  const layers = journeyModule.locator(".ambient-flow");
+  const layerSources = await layers.evaluateAll((elements) => elements.map((element) => element.getAttribute("src")));
+  if (layerSources.length !== 2 || layerSources.some((source) => source !== "/assets/haf/visual-refresh/energy-gradient.jpeg")) {
+    throw new Error(`Expected two shared raster background layers on ${key}, got ${JSON.stringify(layerSources)}`);
+  }
+  const screenshotPath = path.join(outputDir, `${key}-implementation.png`);
+  await targetPage.mouse.move(1360, 1160);
+  await journeyModule.screenshot({ path: screenshotPath, animations: "allow" });
+  screenshots[key] = screenshotPath;
+  sharedBackgrounds[key] = layerSources;
+  return { screen, journeyModule };
+}
+
 await page.goto(baseURL, { waitUntil: "domcontentloaded" });
-await page.getByTestId("welcome-screen").waitFor({ state: "visible", timeout: 8_000 });
-await page.getByTestId("welcome-screen").getByRole("button", { name: "开启今日探索" }).click();
+const { journeyModule: loadingModule } = await captureJourneyScreen("loading-screen", "loading");
+const primaryFlow = loadingModule.locator(".ambient-flow-primary");
+const initialBackgroundTransform = await primaryFlow.evaluate((element) => window.getComputedStyle(element).transform);
+await page.waitForTimeout(450);
+const animatedBackgroundTransform = await primaryFlow.evaluate((element) => window.getComputedStyle(element).transform);
+if (initialBackgroundTransform === animatedBackgroundTransform) {
+  throw new Error(`Expected the shared background raster to move subtly, but transform remained ${initialBackgroundTransform}`);
+}
+const { screen: welcomeScreen } = await captureJourneyScreen("welcome-screen", "welcome");
+await welcomeScreen.getByRole("button", { name: "开启今日探索" }).click();
 
 const deviceScreen = page.getByTestId("device-screen");
 const profileScreen = page.getByTestId("profile-screen");
@@ -49,29 +77,26 @@ if (!moduleBox || Math.abs(moduleBox.width - 393) > 1 || Math.abs(moduleBox.heig
   throw new Error(`Expected full-screen HAF module at 393 x 852, got ${moduleBox?.width} x ${moduleBox?.height}`);
 }
 
-const profilePath = path.join(outputDir, "profile-implementation.png");
-await page.mouse.move(1360, 1160);
-await profileModule.screenshot({ path: profilePath });
+await captureJourneyScreen("profile-screen", "profile");
 
 await page.getByRole("button", { name: "year增加" }).click();
 await page.getByRole("button", { name: "year增加" }).click();
 await page.getByLabel("当前城市").fill("苏州");
 await page.getByRole("button", { name: "day增加" }).click();
 await profileScreen.getByRole("button", { name: "开启今日探索" }).click();
-await page.getByTestId("compass-screen").waitFor({ state: "visible" });
+await captureJourneyScreen("compass-screen", "compass");
 
 const compass = page.locator(".compass-map");
 const compassBox = await compass.boundingBox();
 if (!compassBox) throw new Error("Compass did not render");
 await page.mouse.click(compassBox.x + compassBox.width * 0.8, compassBox.y + compassBox.height * 0.42);
 await page.getByTestId("compass-screen").getByRole("button", { name: "完成感应" }).click();
+await captureJourneyScreen("synthesis-screen", "synthesis");
 const resultScreen = page.getByTestId("result-screen");
 await resultScreen.waitFor({ state: "visible", timeout: 12_000 });
 const resultModule = resultScreen.locator("xpath=ancestor::section[@data-testid='journey-module']");
 
-const resultPath = path.join(outputDir, "result-implementation.png");
-await page.mouse.move(1360, 1160);
-await resultModule.screenshot({ path: resultPath });
+await captureJourneyScreen("result-screen", "result");
 
 const cards = page.getByTestId("course-card");
 if (await cards.count() !== 3) throw new Error(`Expected exactly 3 course cards, got ${await cards.count()}`);
@@ -86,16 +111,20 @@ const cardClipping = await cards.first().evaluate((element) => {
 if (cardClipping.borderRadius !== "22px" || cardClipping.clipPath === "none") {
   throw new Error(`Expected rounded card clipping, got ${JSON.stringify(cardClipping)}`);
 }
-const facetsBox = await page.locator(".energy-facets").boundingBox();
-const savedEntryBox = await page.locator(".recommendation-saved").boundingBox();
-const savedEntryTopGap = facetsBox && savedEntryBox
-  ? savedEntryBox.y - (facetsBox.y + facetsBox.height)
-  : 0;
-const savedEntryBottomGap = savedEntryBox && firstCardBox
-  ? firstCardBox.y - (savedEntryBox.y + savedEntryBox.height)
-  : 0;
-if (savedEntryTopGap < 6 || savedEntryBottomGap < 6) {
-  throw new Error(`Expected breathing room around saved entry, got ${savedEntryTopGap}px / ${savedEntryBottomGap}px`);
+const facetFooterTops = await page.locator(".energy-facets em").evaluateAll((elements) => (
+  elements.map((element) => element.getBoundingClientRect().top)
+));
+if (Math.max(...facetFooterTops) - Math.min(...facetFooterTops) > 1) {
+  throw new Error(`Expected aligned facet footers, got ${facetFooterTops.join(", ")}`);
+}
+const savedAction = resultScreen.getByRole("button", { name: /^查看已收藏/ });
+const savedActionBox = await savedAction.boundingBox();
+const refreshActionBox = await resultScreen.getByRole("button", { name: "换一批" }).boundingBox();
+if (!savedActionBox || Math.abs(savedActionBox.width - savedActionBox.height) > 1 || Math.abs(savedActionBox.width - 52) > 1) {
+  throw new Error(`Expected a 52px circular saved action, got ${JSON.stringify(savedActionBox)}`);
+}
+if (!refreshActionBox || refreshActionBox.width > 280 || Math.abs(refreshActionBox.height - 52) > 1) {
+  throw new Error(`Expected a narrower 278 x 52 refresh action, got ${JSON.stringify(refreshActionBox)}`);
 }
 const reSenseBox = await resultScreen.getByRole("button", { name: "重新感应", exact: true }).boundingBox();
 const resultModuleBox = await resultModule.boundingBox();
@@ -120,6 +149,10 @@ if (railScrollLeft <= 0) throw new Error("Course carousel did not move horizonta
 const firstHeart = page.locator(".course-heart").first();
 await firstHeart.click();
 if (!(await firstHeart.getAttribute("class"))?.includes("saved")) throw new Error("Favorite state did not update");
+await savedAction.click();
+await captureJourneyScreen("favorites-screen", "favorites");
+await page.getByTestId("favorites-screen").getByRole("button", { name: /回到今日能量/ }).click();
+await resultScreen.waitFor({ state: "visible" });
 
 let refreshedTitles = firstTitles;
 for (let refreshIndex = 0; refreshIndex < 4; refreshIndex += 1) {
@@ -143,25 +176,55 @@ await page.getByTestId("compass-screen").getByRole("button", { name: "完成感�
 await page.getByTestId("result-screen").waitFor({ state: "visible", timeout: 12_000 });
 await page.getByTestId("result-screen").getByRole("button", { name: "修改档案" }).click();
 await page.getByTestId("profile-screen").last().waitFor({ state: "visible" });
+const returnPage = await context.newPage();
+await returnPage.addInitScript(() => {
+  window.localStorage.setItem("haf-journey-onboarded", JSON.stringify(true));
+});
+await returnPage.goto(baseURL, { waitUntil: "domcontentloaded" });
+await captureJourneyScreen("return-screen", "return", returnPage);
+await returnPage.close();
+const reducedContext = await browser.newContext({
+  viewport: { width: 393, height: 852 },
+  reducedMotion: "reduce",
+});
+const reducedPage = await reducedContext.newPage();
+await reducedPage.addInitScript(() => {
+  window.localStorage.setItem("haf-journey-onboarded", JSON.stringify(false));
+});
+await reducedPage.goto(baseURL, { waitUntil: "domcontentloaded" });
+await reducedPage.getByTestId("loading-screen").waitFor({ state: "visible" });
+const reducedAnimationName = await reducedPage.locator(".ambient-flow-primary").evaluate((element) => (
+  window.getComputedStyle(element).animationName
+));
+if (reducedAnimationName !== "none") {
+  throw new Error(`Expected background motion to stop for reduced-motion users, got ${reducedAnimationName}`);
+}
+await reducedContext.close();
 
 const summary = {
   baseURL,
   viewport: { width: 1400, height: 1200, deviceScaleFactor: 1 },
   deviceScreen: deviceBox,
   module: moduleBox,
-  screenshots: { profile: profilePath, result: resultPath },
+  screenshots,
+  sharedBackgrounds,
   interactions: {
+    animatedBackground: initialBackgroundTransform !== animatedBackgroundTransform ? "passed" : "failed",
+    reducedMotion: reducedAnimationName === "none" ? "passed" : "failed",
     profileControls: "passed",
     primaryCTA: "passed",
     carousel: railScrollLeft > 0 ? "passed" : "failed",
     favorite: "passed",
+    favoritesEntry: "passed",
     refresh: firstTitles.join("|") !== refreshedTitles.join("|") && seenCourseIds.size === 15 ? "no-repeats-across-5-batches" : "failed",
     persistedCourseHistory: persistedCourseHistory.length,
     reSense: "passed",
     editProfile: "passed",
     compactCardHeight: firstCardBox.height,
     roundedCardClipping: cardClipping,
-    savedEntrySpacing: { top: savedEntryTopGap, bottom: savedEntryBottomGap },
+    facetFooterAlignment: facetFooterTops,
+    savedAction: savedActionBox,
+    refreshAction: refreshActionBox,
     bottomActionBuffer,
   },
   consoleErrors,
