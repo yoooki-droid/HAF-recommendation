@@ -550,6 +550,14 @@ function recommendCourses(
     ? 1
     : insight.poles.active > insight.poles.calm ? 0.5 : 0;
   const targetDuration = targetIntensity === 1 ? 90 : targetIntensity === 0.5 ? 60 : 30;
+  const freshCourses = activeCourses.filter((course) => !recentIds.has(course.course_id));
+  const recentOrder = new Map([...recentIds].map((id, index) => [id, index]));
+  const rolloverCourses = activeCourses
+    .filter((course) => recentIds.has(course.course_id))
+    .sort((a, b) => (recentOrder.get(a.course_id) ?? 0) - (recentOrder.get(b.course_id) ?? 0));
+  const candidateCourses = freshCourses.length >= 3
+    ? freshCourses
+    : [...freshCourses, ...rolloverCourses.slice(0, Math.max(12, 3 - freshCourses.length))];
   const scoreCourse = (course: CatalogCourse) => {
     const primaryMatch = course.chakra_tags.includes(insight.primaryChakra.id) ? 1 : 0;
     const secondaryMatch = course.chakra_tags.includes(insight.secondaryChakra.id) ? 1 : 0;
@@ -572,7 +580,7 @@ function recommendCourses(
     const recencyFit = recentIds.has(course.course_id) ? 0 : 1;
     return 0.35 * chakraScore + 0.25 * compassScore + 0.2 * numerologyScore + 0.1 * practiceFit + 0.1 * recencyFit;
   };
-  const candidates = activeCourses.map((course) => ({ course, score: scoreCourse(course) }));
+  const candidates = candidateCourses.map((course) => ({ course, score: scoreCourse(course) }));
   const selected: CatalogCourse[] = [];
   while (selected.length < 2 && candidates.length) {
     const ranked = candidates.map((candidate) => {
@@ -619,6 +627,12 @@ function recommendCourses(
       image: course.cover_asset,
     };
   });
+}
+
+function appendCourseHistory(history: Iterable<string>, courseIds: string[]) {
+  const currentIds = new Set(courseIds);
+  const next = [...[...history].filter((id) => !currentIds.has(id)), ...courseIds];
+  return next.slice(-activeCourses.length);
 }
 
 function loadLocal<T>(key: string, fallback: T): T {
@@ -1147,11 +1161,12 @@ function ResultScreen() {
   );
 
   useEffect(() => {
-    window.localStorage.setItem(recentCourseStorageKey, JSON.stringify(orderedCourses.map((course) => course.id)));
-  }, [orderedCourses]);
+    const history = appendCourseHistory(recentCourseIds, orderedCourses.map((course) => course.id));
+    window.localStorage.setItem(recentCourseStorageKey, JSON.stringify(history));
+  }, [orderedCourses, recentCourseIds]);
 
   const refreshCourses = () => {
-    setRecentCourseIds((previous) => new Set([...previous, ...orderedCourses.map((course) => course.id)]));
+    setRecentCourseIds((previous) => new Set(appendCourseHistory(previous, orderedCourses.map((course) => course.id))));
     setBatch((value) => value + 1);
   };
 
@@ -1162,8 +1177,7 @@ function ResultScreen() {
           <img src="/assets/haf/visual-refresh/back-chevron.svg" alt="" />
         </button>
         <div className="result-top-actions">
-          <button onClick={() => flow.push(makeScreen("profile"))}>重新编辑</button>
-          {favorites.length > 0 && <button onClick={() => flow.push(makeScreen("favorites"))}>已收藏 {favorites.length}</button>}
+          <button onClick={() => flow.push(makeScreen("profile"))}>修改档案</button>
         </div>
         <section className="result-insight">
           <div className="result-copy">
@@ -1179,13 +1193,17 @@ function ResultScreen() {
         </section>
         <section className="recommendations">
           <h2 className="visually-hidden">此刻与你契合的体验</h2>
+          <button className="recommendation-saved" onClick={() => flow.push(makeScreen("favorites"))}>
+            已收藏{favorites.length > 0 ? ` ${favorites.length}` : ""}
+          </button>
           <Carousel className="course-rail" contentClassName="course-track" ariaLabel="此刻与你契合的体验">
             {orderedCourses.map((course) => {
               const saved = favorites.includes(course.id);
               return (
-                <article className="course-card" data-testid="course-card" key={course.id}>
+                <article className="course-card" data-testid="course-card" data-course-id={course.id} key={course.id}>
                   <img className="course-visual" src={course.image} alt="" />
                   <div className="course-shade" aria-hidden="true" />
+                  <div className="course-copy-haze" aria-hidden="true" />
                   <small className="course-date-pill">{course.dateLabel}</small>
                   <button className={`course-heart ${saved ? "saved" : ""}`} onClick={() => toggleFavorite(course.id)} aria-label={`${saved ? "取消收藏" : "收藏"}${course.title}`}>
                     <img src="/assets/haf/visual-refresh/heart-outline.svg" alt="" />

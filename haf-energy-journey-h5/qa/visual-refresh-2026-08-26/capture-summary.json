@@ -12,7 +12,7 @@
     "height": 852
   },
   "module": {
-    "x": 806.418701171875,
+    "x": 825.72802734375,
     "y": 174,
     "width": 393,
     "height": 852
@@ -26,7 +26,8 @@
     "primaryCTA": "passed",
     "carousel": "passed",
     "favorite": "passed",
-    "refresh": "changed",
+    "refresh": "no-repeats-across-5-batches",
+    "persistedCourseHistory": 15,
     "reSense": "passed",
     "editProfile": "passed",
     "compactCardHeight": 285,

@@ -27,8 +27,8 @@ await page.addInitScript(() => {
     gender: "女性",
     city: "苏州",
   }));
-  window.localStorage.setItem("haf-journey-favorites", JSON.stringify([]));
-  window.localStorage.setItem("haf-journey-recent-courses", JSON.stringify([]));
+  window.localStorage.setItem("haf-journey-favorites:2025-validation-v1", JSON.stringify([]));
+  window.localStorage.setItem("haf-journey-recent-courses:2025-validation-v1", JSON.stringify([]));
 });
 
 await page.goto(baseURL, { waitUntil: "domcontentloaded" });
@@ -87,6 +87,7 @@ const bottomActionBuffer = reSenseBox && resultModuleBox
 if (bottomActionBuffer < 70) {
   throw new Error(`Expected at least 70px below re-sense action, got ${bottomActionBuffer}`);
 }
+const seenCourseIds = new Set(await cards.evaluateAll((elements) => elements.map((element) => element.getAttribute("data-course-id"))));
 const firstTitles = await page.locator(".course-card h3").allTextContents();
 const rail = page.locator(".course-rail");
 const railBox = await rail.boundingBox();
@@ -102,14 +103,27 @@ const firstHeart = page.locator(".course-heart").first();
 await firstHeart.click();
 if (!(await firstHeart.getAttribute("class"))?.includes("saved")) throw new Error("Favorite state did not update");
 
-await page.getByTestId("result-screen").getByRole("button", { name: "换一批" }).click();
-await page.waitForTimeout(150);
-const refreshedTitles = await page.locator(".course-card h3").allTextContents();
+let refreshedTitles = firstTitles;
+for (let refreshIndex = 0; refreshIndex < 4; refreshIndex += 1) {
+  await page.getByTestId("result-screen").getByRole("button", { name: "换一批" }).click();
+  await page.waitForTimeout(150);
+  const refreshedIds = await cards.evaluateAll((elements) => elements.map((element) => element.getAttribute("data-course-id")));
+  const repeatedId = refreshedIds.find((id) => id && seenCourseIds.has(id));
+  if (repeatedId) throw new Error(`Course ${repeatedId} repeated before the unseen catalog pool was exhausted`);
+  refreshedIds.forEach((id) => { if (id) seenCourseIds.add(id); });
+  refreshedTitles = await page.locator(".course-card h3").allTextContents();
+}
+const persistedCourseHistory = await page.evaluate(() => JSON.parse(
+  window.localStorage.getItem("haf-journey-recent-courses:2025-validation-v1") ?? "[]",
+));
+if (persistedCourseHistory.length !== 15) {
+  throw new Error(`Expected 15 persisted unique course IDs after five batches, got ${persistedCourseHistory.length}`);
+}
 await page.getByTestId("result-screen").getByRole("button", { name: "重新感应", exact: true }).click();
 await page.getByTestId("compass-screen").waitFor({ state: "visible" });
 await page.getByTestId("compass-screen").getByRole("button", { name: "完成感应" }).click();
 await page.getByTestId("result-screen").waitFor({ state: "visible", timeout: 12_000 });
-await page.getByTestId("result-screen").getByRole("button", { name: "重新编辑" }).click();
+await page.getByTestId("result-screen").getByRole("button", { name: "修改档案" }).click();
 await page.getByTestId("profile-screen").last().waitFor({ state: "visible" });
 
 const summary = {
@@ -123,7 +137,8 @@ const summary = {
     primaryCTA: "passed",
     carousel: railScrollLeft > 0 ? "passed" : "failed",
     favorite: "passed",
-    refresh: firstTitles.join("|") !== refreshedTitles.join("|") ? "changed" : "stable-but-functional",
+    refresh: firstTitles.join("|") !== refreshedTitles.join("|") && seenCourseIds.size === 15 ? "no-repeats-across-5-batches" : "failed",
+    persistedCourseHistory: persistedCourseHistory.length,
     reSense: "passed",
     editProfile: "passed",
     compactCardHeight: firstCardBox.height,
