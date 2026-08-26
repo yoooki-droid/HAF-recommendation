@@ -428,9 +428,10 @@ function synthesizeEnergy(point: Point, lifePath: number, personalDay: number, d
   compassCells.forEach((cell) => {
     scores[synthesisModel.compass_grid_keyword[cell.id]] += synthesisModel.weights.compass_total * cell.value / compassCellTotal;
   });
-  const keywordCandidates = keywordIds.sort((a, b) => scores[b] - scores[a] || a.localeCompare(b));
-  const keywordId = keywordCandidates[0];
   const dailyThemeId = synthesisModel.number_keyword[String(personalDay)];
+  const rankedKeywordIds = keywordIds.sort((a, b) => scores[b] - scores[a] || a.localeCompare(b));
+  const keywordCandidates = rankedKeywordIds.filter((id) => id !== dailyThemeId);
+  const keywordId = keywordCandidates[0];
   const horizontal: EnergyPole = projection.poles.inward >= projection.poles.outward ? "inward" : "outward";
   const vertical: EnergyPole = projection.poles.calm >= projection.poles.active ? "calm" : "active";
   const distance = Math.min(1, Math.hypot(point.x, point.y) / 1.15);
@@ -443,7 +444,6 @@ function synthesizeEnergy(point: Point, lifePath: number, personalDay: number, d
   const dailyTheme = synthesisModel.keywords[dailyThemeId];
   const numberTheme = numberThemes[String(personalDay)];
   const energySummary = `今天的主旋律是“${dailyTheme.display}”，你此刻从“${keyword.display}”靠近；${projection.primary.zh}提醒你留意${projection.primary.themes[0]}。`;
-  const signalsAlign = dailyThemeId === keywordId;
   return {
     dailyThemeId,
     dailyTheme,
@@ -458,8 +458,8 @@ function synthesizeEnergy(point: Point, lifePath: number, personalDay: number, d
       vertical: { id: vertical, label: synthesisModel.compass_labels[vertical] },
     },
     intensity,
-    compositeTitle: signalsAlign ? dailyTheme.display : `${keyword.display} · ${dailyTheme.display}`,
-    compositeLine: signalsAlign ? "今天的主旋律，也正是你此刻最需要靠近的方向。" : `以${keyword.display}的方式，靠近今天的${dailyTheme.display}。`,
+    compositeTitle: `${keyword.display} · ${dailyTheme.display}`,
+    compositeLine: `以${keyword.display}的方式，靠近今天的${dailyTheme.display}。`,
     energySummary,
     chakraSummary: `${projection.primary.zh}是今天较清晰的线索，邀请你留意${projection.primary.themes.slice(0, 2).join("与")}；${projection.secondary.zh}也在提醒你，为${projection.secondary.themes[0]}留一点空间。${numberTheme?.gentle_prompt ?? ""}`,
   };
@@ -675,7 +675,7 @@ function dailyGreetingCacheKey(dateKey: string, dayNumber: number, lifePath: num
 }
 
 function energyReadingCacheKey(dateKey: string, dayNumber: number, insight: EnergyInsight) {
-  return `haf-energy-reading:v2:${dateKey}:${dayNumber}:${insight.keywordId}:${insight.direction.horizontal.id}:${insight.direction.vertical.id}:${insight.intensity.id}:${insight.primaryChakra.id}:${insight.secondaryChakra.id}`;
+  return `haf-energy-reading:v3:${dateKey}:${dayNumber}:${insight.keywordId}:${insight.direction.horizontal.id}:${insight.direction.vertical.id}:${insight.intensity.id}:${insight.primaryChakra.id}:${insight.secondaryChakra.id}`;
 }
 
 async function requestJson<T>(endpoint: string, payload: Record<string, unknown>): Promise<T | null> {
@@ -1087,6 +1087,21 @@ const sensingDimensions: Record<ChakraId, { core: string; tone: string }> = {
   crown: { core: "意识", tone: "#9b72d0" },
 };
 
+type SensingGestureMode = "slow" | "drift" | "wide" | "forceful";
+
+const sensingProcessWords: Record<KeywordId, Record<SensingGestureMode, string[]>> = {
+  begin: { slow: ["萌芽", "初启"], drift: ["试一试", "开一扇门"], wide: ["走出去", "遇见新的"], forceful: ["起身", "迈出一步"] },
+  connect: { slow: ["倾听", "陪伴"], drift: ["靠近", "相遇"], wide: ["共鸣", "连结"], forceful: ["回应", "敞开"] },
+  express: { slow: ["酝酿", "辨清"], drift: ["传递", "说出"], wide: ["分享", "沟通"], forceful: ["发声", "坦然"] },
+  ground: { slow: ["沉静", "安住"], drift: ["回身", "落地"], wide: ["承载", "支撑"], forceful: ["站稳", "扎根"] },
+  flow: { slow: ["松动", "舒展"], drift: ["流转", "经过"], wide: ["延展", "自然"], forceful: ["破冰", "涌动"] },
+  care: { slow: ["温柔", "体恤"], drift: ["照料", "善待"], wide: ["守护", "拥抱"], forceful: ["为己", "设界"] },
+  insight: { slow: ["内观", "静听"], drift: ["察觉", "看见"], wide: ["辨识", "清明"], forceful: ["直面", "聚焦"] },
+  strength: { slow: ["蓄力", "定心"], drift: ["选择", "坚定"], wide: ["拓展", "突破"], forceful: ["勇气", "推进"] },
+  release: { slow: ["松开", "卸下"], drift: ["释然", "留白"], wide: ["告别", "腾空"], forceful: ["放手", "轻装"] },
+  integrate: { slow: ["沉淀", "归位"], drift: ["收拢", "调和"], wide: ["联结", "合一"], forceful: ["重整", "平衡"] },
+};
+
 type SensingCursor = {
   x: number;
   y: number;
@@ -1222,6 +1237,7 @@ function CompassScreen() {
   const [dimensionId, setDimensionId] = useState<ChakraId>(initialInsight.primaryChakra.id);
   const [currentKeywordId, setCurrentKeywordId] = useState<KeywordId>(initialInsight.keywordId);
   const [currentDirection, setCurrentDirection] = useState(initialInsight.direction);
+  const [processWord, setProcessWord] = useState(sensingProcessWords[initialInsight.keywordId].drift[0]);
   const [readyToComplete, setReadyToComplete] = useState(false);
   const [cursor, setCursor] = useState<SensingCursor>({
     x: 196,
@@ -1234,9 +1250,30 @@ function CompassScreen() {
   });
   const livePointRef = useRef(point);
   const pendingInsightRef = useRef(initialInsight);
+  const pendingGestureModeRef = useRef<SensingGestureMode>("drift");
+  const shownProcessWordsRef = useRef(new Set<string>());
+  const processStepRef = useRef(0);
   const sessionRef = useRef({ start: 0, lastTime: 0, lastX: 196, lastY: 448, totalTravel: 0, lastWordAt: 0 });
 
-  const revealInsight = (insight: EnergyInsight) => {
+  const lockInsight = (insight: EnergyInsight) => {
+    setCurrentKeywordId(insight.keywordId);
+    setCurrentDirection(insight.direction);
+    setDimensionId(insight.primaryChakra.id);
+  };
+
+  const revealProcessInsight = (insight: EnergyInsight) => {
+    const family = sensingProcessWords[insight.keywordId];
+    const preferred = family[pendingGestureModeRef.current];
+    const fullPool = [...preferred, ...Object.values(family).flat().filter((word) => !preferred.includes(word))];
+    let available = fullPool.filter((word) => !shownProcessWordsRef.current.has(word));
+    if (!available.length) {
+      fullPool.forEach((word) => shownProcessWordsRef.current.delete(word));
+      available = fullPool;
+    }
+    const nextWord = available[processStepRef.current % available.length];
+    processStepRef.current += 1;
+    shownProcessWordsRef.current.add(nextWord);
+    setProcessWord(nextWord);
     setCurrentKeywordId(insight.keywordId);
     setCurrentDirection(insight.direction);
     setDimensionId(insight.primaryChakra.id);
@@ -1261,6 +1298,13 @@ function CompassScreen() {
     const slowCenter = radius < .38 && speed < .24 && hold > 420 ? 1 : 0;
     const wideMovement = session.totalTravel > bounds.width * .62 && radius > .42 ? 1 : 0;
     const forcefulMovement = clampSensing((speed - .32) / .72, 0, 1);
+    pendingGestureModeRef.current = forcefulMovement > .55
+      ? "forceful"
+      : slowCenter
+        ? "slow"
+        : wideMovement
+          ? "wide"
+          : "drift";
     const shapedPoint = {
       x: clampSensing(rawPoint.x + wideMovement * .2 - slowCenter * .18, -.88, .88),
       y: clampSensing(rawPoint.y + forcefulMovement * .3 - slowCenter * .22, -.88, .88),
@@ -1271,8 +1315,8 @@ function CompassScreen() {
     const nextDimensionId = nextInsight.primaryChakra.id;
     setDimensionId(nextDimensionId);
     setCurrentDirection(nextInsight.direction);
-    if (nextInsight.keywordId !== currentKeywordId && now - session.lastWordAt >= 1650) {
-      revealInsight(nextInsight);
+    if (now - session.lastWordAt >= 1150) {
+      revealProcessInsight(nextInsight);
       session.lastWordAt = now;
     }
     const nativePressure = event.pressure > 0 ? event.pressure : 0;
@@ -1298,8 +1342,8 @@ function CompassScreen() {
       const session = sessionRef.current;
       const holdPressure = clampSensing((now - session.start) / 1200, 0, 1);
       setCursor((current) => ({ ...current, pressure: Math.max(current.pressure, .22 + holdPressure * .46), sequence: current.sequence + 1 }));
-      if (now - session.lastWordAt >= 1650) {
-        revealInsight(pendingInsightRef.current);
+      if (now - session.lastWordAt >= 1150) {
+        revealProcessInsight(pendingInsightRef.current);
         session.lastWordAt = now;
       }
     }, 140);
@@ -1324,6 +1368,10 @@ function CompassScreen() {
     const localY = clampSensing(event.clientY - bounds.top, 0, bounds.height);
     sessionRef.current = { start: now, lastTime: now, lastX: localX, lastY: localY, totalTravel: 0, lastWordAt: now };
     pendingInsightRef.current = synthesizeEnergy(livePointRef.current, lifePath, dayNumber, dateKey);
+    pendingGestureModeRef.current = "drift";
+    shownProcessWordsRef.current = new Set();
+    processStepRef.current = 0;
+    revealProcessInsight(pendingInsightRef.current);
     setPhase("sensing");
     updateGesture(event);
   };
@@ -1333,12 +1381,13 @@ function CompassScreen() {
     updateGesture(event);
     event.currentTarget.releasePointerCapture(event.pointerId);
     setPoint(livePointRef.current);
-    revealInsight(pendingInsightRef.current);
+    lockInsight(pendingInsightRef.current);
     setPhase("locked");
     setCursor((current) => ({ ...current, pressure: Math.max(.72, current.pressure), sequence: current.sequence + 1 }));
   };
 
-  const currentWord = synthesisModel.keywords[currentKeywordId].display;
+  const lockedWord = synthesisModel.keywords[currentKeywordId].display;
+  const currentWord = phase === "locked" ? lockedWord : processWord;
   const backgroundX = (cursor.xRatio - .5) * -18;
   const backgroundY = (cursor.yRatio - .5) * -14;
   return (
@@ -1384,13 +1433,13 @@ function CompassScreen() {
           />
         </div>
         <section className="sensing-word" aria-live="polite">
-          <motion.small layout>{phase === "locked" ? "此刻与你产生回应的是——" : "此刻浮现"}</motion.small>
+          <motion.small layout>{phase === "locked" ? "此刻与你产生回应的是——" : phase === "sensing" ? "沿着动作浮现" : "一个词正在靠近"}</motion.small>
           <AnimatePresence mode="wait">
             <motion.strong key={currentWord} initial={{ opacity: 0, y: 9, filter: "blur(7px)" }} animate={{ opacity: 1, y: 0, filter: "blur(0px)" }} exit={{ opacity: 0, y: -7, filter: "blur(6px)" }} transition={{ duration: .58, ease: "easeOut" }}>
               {currentWord}
             </motion.strong>
           </AnimatePresence>
-          <p>{phase === "idle" ? "按住画面，让手指随直觉移动" : phase === "sensing" ? `${currentDirection.horizontal.label} · ${currentDirection.vertical.label}` : "由今日主旋律、你的动作与能量落点共同浮现"}</p>
+          <p>{phase === "idle" ? "移动越久，出现的线索越丰富" : phase === "sensing" ? `${currentDirection.horizontal.label} · ${currentDirection.vertical.label}` : `这是今日“${initialInsight.dailyTheme.display}”之外，你此刻的回应`}</p>
         </section>
         <AnimatePresence>
           {phase === "locked" && readyToComplete && (

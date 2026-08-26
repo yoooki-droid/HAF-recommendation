@@ -1,5 +1,8 @@
 {
-  "synthesis_version": "haf.energy-synthesis.v2",
+  "synthesis_version": "haf.energy-synthesis.v3",
+  "selection": {
+    "exclude_daily_theme_from_moment": true
+  },
   "weights": {
     "personal_day": 0.12,
     "life_path": 0.05,

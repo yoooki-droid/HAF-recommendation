@@ -139,22 +139,14 @@ def synthesize(numerology: dict[str, Any], chakra: dict[str, Any]) -> dict[str, 
 
     add_compass_grid_signals(scores, trace, model, poles)
 
-    ranked = sorted(scores.items(), key=lambda item: (-item[1], item[0]))
-    chosen_id, chosen_score = ranked[0]
-    chosen = model["keywords"][chosen_id]
     daily_theme_id = model["number_keyword"][str(personal_day)]
     daily_theme = model["keywords"][daily_theme_id]
-    signals_align = daily_theme_id == chosen_id
-    composite_title = (
-        daily_theme["display"]
-        if signals_align
-        else f"{chosen['display']} · {daily_theme['display']}"
-    )
-    composite_line = (
-        "今天的主旋律，也正是你此刻最需要靠近的方向。"
-        if signals_align
-        else f"以{chosen['display']}的方式，靠近今天的{daily_theme['display']}。"
-    )
+    ranked = sorted(scores.items(), key=lambda item: (-item[1], item[0]))
+    moment_ranked = [item for item in ranked if item[0] != daily_theme_id]
+    chosen_id, chosen_score = moment_ranked[0]
+    chosen = model["keywords"][chosen_id]
+    composite_title = f"{chosen['display']} · {daily_theme['display']}"
+    composite_line = f"以{chosen['display']}的方式，靠近今天的{daily_theme['display']}。"
 
     horizontal = "inward" if poles["inward"] >= poles["outward"] else "outward"
     vertical = "calm" if poles["calm"] >= poles["active"] else "active"
@@ -180,7 +172,7 @@ def synthesize(numerology: dict[str, Any], chakra: dict[str, Any]) -> dict[str, 
             "display": model["keywords"][keyword_id]["display"],
             "score": round(score, 6),
         }
-        for keyword_id, score in ranked[:3]
+        for keyword_id, score in moment_ranked[:3]
     ]
     evidence_ids = list(dict.fromkeys(chakra.get("evidence_ids", []))) + [
         f"KEYWORD_{chosen_id.upper()}",
@@ -200,6 +192,7 @@ def synthesize(numerology: dict[str, Any], chakra: dict[str, Any]) -> dict[str, 
         "keyword": {"id": chosen_id, "display": chosen["display"], "score": round(chosen_score, 6)},
         "daily_theme": {"id": daily_theme_id, "display": daily_theme["display"]},
         "moment_keyword": {"id": chosen_id, "display": chosen["display"]},
+        "selection_policy": "moment_excludes_daily_theme",
         "composite_title": composite_title,
         "composite_line": composite_line,
         "keyword_candidates": candidates,

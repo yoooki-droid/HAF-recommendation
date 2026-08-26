@@ -27,6 +27,7 @@ python3 scripts/synthesize_daily_energy.py \
 
 - Weight Personal Day, Life Path, primary chakra, secondary chakra, and all four compass poles according to the versioned synthesis model.
 - Collapse semantically aligned signals into the same keyword family before ranking. This makes a keyword reflect agreement between systems instead of letting one input dominate invisibly.
+- Reserve the Personal Day keyword for `今日主旋律`; the locked `moment_keyword` must be the highest-ranked different family so sensing always adds a second signal instead of repeating the numerology label.
 - Use the four-pole values continuously; do not infer from a hard quadrant alone.
 - Keep numerology visually secondary to the keyword and summary.
 - Never output “blocked,” “damaged,” “diagnosed,” “healed,” or deterministic future language.
@@ -46,6 +47,7 @@ Required fields:
 - `schema_version`, `synthesis_version`, and `upstream_versions`
 - `keyword`, `keyword_candidates`, and `keyword_trace`
 - `daily_theme`, `moment_keyword`, `composite_title`, and `composite_line`
+- `selection_policy` set to `moment_excludes_daily_theme`
 - `visible_meta`
 - `energy_summary`, `chakra_summary`, and `reflection_prompt`
 - `primary_chakra`, `secondary_chakra`, and `direction`

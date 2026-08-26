@@ -115,10 +115,15 @@ await page.mouse.move(sensingBox.x + sensingBox.width * .46, sensingBox.y + sens
 await page.mouse.down();
 await page.mouse.move(sensingBox.x + sensingBox.width * .82, sensingBox.y + sensingBox.height * .70, { steps: 5 });
 await page.waitForTimeout(500);
+const firstProcessWord = (await compassScreen.locator(".sensing-word strong").innerText()).trim();
 const activeSensingScreenshotPath = path.join(outputDir, "compass-active-implementation.png");
 await compassModule.screenshot({ path: activeSensingScreenshotPath, animations: "allow" });
 screenshots["compass-active"] = activeSensingScreenshotPath;
 await page.waitForTimeout(1_350);
+const laterProcessWord = (await compassScreen.locator(".sensing-word strong").innerText()).trim();
+if (firstProcessWord === laterProcessWord) {
+  throw new Error(`Expected the sensing process vocabulary to continue, but it remained ${firstProcessWord}`);
+}
 await page.mouse.up();
 await page.waitForFunction(() => document.querySelector("[data-testid='compass-screen']")?.getAttribute("data-phase") === "locked");
 const completeButton = compassScreen.getByRole("button", { name: "完成感应" });
@@ -151,6 +156,10 @@ await captureJourneyScreen("result-screen", "result");
 const resultCompositeTitle = (await resultScreen.locator(".result-copy h1").innerText()).trim();
 if (!resultCompositeTitle.includes(lockedSensingWord)) {
   throw new Error(`Expected result title ${resultCompositeTitle} to preserve locked sensing word ${lockedSensingWord}`);
+}
+const resultDailyTheme = (await resultScreen.locator(".energy-facets > span").first().locator("em").innerText()).trim();
+if (lockedSensingWord === resultDailyTheme) {
+  throw new Error(`Expected locked sensing word to differ from daily numerology theme, both were ${lockedSensingWord}`);
 }
 
 const cards = page.getByTestId("course-card");
@@ -303,7 +312,12 @@ const summary = {
     primaryCTA: "passed",
     sensingBackground: sensingBackgroundSource,
     sensingGesture: "hold-drag-release locked a weighted word",
+    firstProcessWord,
+    laterProcessWord,
+    processVocabularyContinues: firstProcessWord !== laterProcessWord,
     lockedSensingWord,
+    resultDailyTheme,
+    distinctMomentAndDailyTheme: lockedSensingWord !== resultDailyTheme,
     resultCompositeTitle,
     courseReasonUsesLockedWord: true,
     completionButton: completeStyle,

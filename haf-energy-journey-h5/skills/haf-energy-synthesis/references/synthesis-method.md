@@ -11,7 +11,7 @@ This Skill turns already-calculated symbolic signals into a coherent, restrained
 
 Reject input when the Life Path or Personal Day embedded in the chakra result differs from the numerology result. Never silently blend records from different users or dates.
 
-## Keyword scoring v2
+## Keyword scoring v3
 
 Each input is mapped to a semantic keyword family:
 
@@ -46,6 +46,12 @@ Near the center      → integrate
 ```
 
 Aligned numerology and chakra signals still influence the ranking, but Personal Day alone can no longer keep the headline fixed while the user moves across the compass. The ranked trace preserves the background and present-moment contributions separately.
+
+### Distinct moment selection
+
+The Personal Day keyword is reserved for `今日主旋律`. After scoring, exclude that one keyword family from the `moment_keyword` candidate list and choose the strongest remaining family. This guarantees that sensing adds a second piece of information instead of echoing the known daily theme. Preserve the excluded family's score and trace for auditability, but do not show it as a sensing-process word or locked moment word.
+
+The result composite title is always `{moment_keyword} · {daily_theme}`. Course recommendation receives the distinct locked moment keyword plus the daily theme as separate evidence fields.
 
 Sort by total score descending, then stable keyword ID ascending. Preserve every contribution in `keyword_trace` so product and content teams can understand the choice.
 

@@ -71,13 +71,24 @@ class EnergySynthesisTests(unittest.TestCase):
             keywords.add(SYNTHESIS.synthesize(numerology, chakra)["keyword"]["display"])
         self.assertGreaterEqual(len(keywords), 4)
 
-    def test_outward_active_strength_signals_select_strength(self) -> None:
+    def test_outward_active_strength_signals_select_strength_when_daily_theme_differs(self) -> None:
         numerology = NUMEROLOGY.calculate_profile("1990-08-12", "2026-08-22")
         numerology["life_path"]["value"] = 1
-        numerology["personal_cycle"]["personal_day"] = 8
-        chakra = CHAKRA.project(0.82, 0.78, 1, 8)
+        numerology["personal_cycle"]["personal_day"] = 3
+        chakra = CHAKRA.project(0.82, 0.78, 1, 3)
         result = SYNTHESIS.synthesize(numerology, chakra)
         self.assertEqual(result["keyword"]["display"], "力量")
+
+    def test_moment_keyword_never_repeats_daily_theme(self) -> None:
+        numerology = NUMEROLOGY.calculate_profile("1990-08-12", "2026-08-22")
+        for personal_day in range(1, 10):
+            numerology["life_path"]["value"] = 8
+            numerology["personal_cycle"]["personal_day"] = personal_day
+            chakra = CHAKRA.project(0.82, 0.78, 8, personal_day)
+            result = SYNTHESIS.synthesize(numerology, chakra)
+            self.assertNotEqual(result["keyword"]["id"], result["daily_theme"]["id"])
+            self.assertEqual(result["selection_policy"], "moment_excludes_daily_theme")
+            self.assertNotEqual(result["composite_title"].split(" · ")[0], result["composite_title"].split(" · ")[1])
 
     def test_input_mismatch_is_rejected(self) -> None:
         numerology, chakra = self.build_release_example()
