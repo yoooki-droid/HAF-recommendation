@@ -27,6 +27,9 @@ Branch: `design/visual-refresh-2026-08-26`
 | Word transition cadence is approximately 1.75 seconds | Pass |
 | Release locks the current word | Pass |
 | Canvas ripple and luminous trail respond to movement | Pass |
+| Ripples are sparse white rings, capped at five and rendered around 30fps | Pass |
+| Visible word is the canonical weighted synthesis keyword, not a decorative chakra synonym | Pass |
+| Locked word persists into the result title, summary, recommendation score, and supported fit reason | Pass |
 | `完成感应` replaces pagination dots | Pass |
 | `完成感应` matches `换一批`: 52px, translucent white fill, white hairline, 16px blur | Pass |
 | Reduced-motion removes moving trail/ripple and background transitions | Pass |

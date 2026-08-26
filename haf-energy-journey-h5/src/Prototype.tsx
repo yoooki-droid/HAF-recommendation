@@ -402,7 +402,8 @@ function synthesizeEnergy(point: Point, lifePath: number, personalDay: number, d
   const projection = projectChakras(point, lifePath, personalDay);
   const keywordIds = Object.keys(synthesisModel.keywords) as KeywordId[];
   const scores = Object.fromEntries(keywordIds.map((id) => [id, 0])) as Record<KeywordId, number>;
-  // The moment keyword is intentionally independent from numerology so the user's compass input stays visible.
+  scores[synthesisModel.number_keyword[String(personalDay)]] += synthesisModel.weights.personal_day;
+  scores[synthesisModel.number_keyword[String(lifePath)] ?? synthesisModel.number_keyword[String(reduceNumber(lifePath))]] += synthesisModel.weights.life_path;
   scores[synthesisModel.chakra_keyword[projection.primary.id]] += synthesisModel.weights.primary_chakra;
   scores[synthesisModel.chakra_keyword[projection.secondary.id]] += synthesisModel.weights.secondary_chakra;
   const horizontalMembership = {
@@ -441,9 +442,8 @@ function synthesizeEnergy(point: Point, lifePath: number, personalDay: number, d
   const keyword = synthesisModel.keywords[keywordId];
   const dailyTheme = synthesisModel.keywords[dailyThemeId];
   const numberTheme = numberThemes[String(personalDay)];
-  const momentKey = `${horizontal}_${vertical}`;
-  const readingSeed = `${dateKey}:${personalDay}:${momentKey}:${intensity.id}:${projection.primary.id}:${projection.secondary.id}`;
-  const energySummary = `${chooseStable(momentReadings[momentKey], `${readingSeed}:moment`)}${chooseStable(themeCounsel[dailyThemeId], `${readingSeed}:theme`)}`;
+  const energySummary = `今天的主旋律是“${dailyTheme.display}”，你此刻从“${keyword.display}”靠近；${projection.primary.zh}提醒你留意${projection.primary.themes[0]}。`;
+  const signalsAlign = dailyThemeId === keywordId;
   return {
     dailyThemeId,
     dailyTheme,
@@ -458,14 +458,14 @@ function synthesizeEnergy(point: Point, lifePath: number, personalDay: number, d
       vertical: { id: vertical, label: synthesisModel.compass_labels[vertical] },
     },
     intensity,
-    compositeTitle: dailyTheme.display,
-    compositeLine: dailyTheme.guidance,
+    compositeTitle: signalsAlign ? dailyTheme.display : `${keyword.display} · ${dailyTheme.display}`,
+    compositeLine: signalsAlign ? "今天的主旋律，也正是你此刻最需要靠近的方向。" : `以${keyword.display}的方式，靠近今天的${dailyTheme.display}。`,
     energySummary,
     chakraSummary: `${projection.primary.zh}是今天较清晰的线索，邀请你留意${projection.primary.themes.slice(0, 2).join("与")}；${projection.secondary.zh}也在提醒你，为${projection.secondary.themes[0]}留一点空间。${numberTheme?.gentle_prompt ?? ""}`,
   };
 }
 
-type FitReasonMode = "numerology" | "chakra" | "compass" | "practice";
+type FitReasonMode = "keyword" | "numerology" | "chakra" | "compass" | "practice";
 
 function buildCourseFitReason(
   course: CatalogCourse,
@@ -488,15 +488,16 @@ function buildCourseFitReason(
   const matchesCompass = course.energy_poles.includes(insight.direction.horizontal.id)
     || course.energy_poles.includes(insight.direction.vertical.id);
   const validModes: Record<FitReasonMode, boolean> = {
+    keyword: course.keyword_tags.includes(insight.keywordId),
     numerology: matchesNumerology,
     chakra: Boolean(matchedChakra),
     compass: matchesCompass,
     practice: true,
   };
   const modeOrders: FitReasonMode[][] = [
-    ["numerology", "chakra", "compass", "practice"],
-    ["chakra", "compass", "numerology", "practice"],
-    ["compass", "practice", "chakra", "numerology"],
+    ["keyword", "numerology", "chakra", "compass", "practice"],
+    ["chakra", "keyword", "compass", "numerology", "practice"],
+    ["compass", "keyword", "practice", "chakra", "numerology"],
   ];
   const orderedModes = modeOrders[index] ?? modeOrders[2];
   const mode = orderedModes.find((candidate) => validModes[candidate] && !usedModes.has(candidate))
@@ -513,6 +514,13 @@ function buildCourseFitReason(
     outward_active: "从互动与行动进入状态",
   };
   const seed = `${dateKey}:${course.course_id}:${insight.keywordId}:${mode}`;
+  if (mode === "keyword") {
+    return chooseStable([
+      `你停下来的“${insight.keyword.display}”也出现在这场体验的线索里；${experience}让这份回应有一个具体入口。`,
+      `此刻浮现的“${insight.keyword.display}”与${experience}彼此呼应，可以先收藏，在合适的时候进入。`,
+      `顺着你感应到的“${insight.keyword.display}”，${experience}提供了一条更具体的体验路径。`,
+    ], seed);
+  }
   if (mode === "numerology") {
     return chooseStable([
       `此刻的“${insight.dailyTheme.display}”需要一个具体入口；${experience}让它先变得可被感知。`,
@@ -667,7 +675,7 @@ function dailyGreetingCacheKey(dateKey: string, dayNumber: number, lifePath: num
 }
 
 function energyReadingCacheKey(dateKey: string, dayNumber: number, insight: EnergyInsight) {
-  return `haf-energy-reading:${dateKey}:${dayNumber}:${insight.direction.horizontal.id}:${insight.direction.vertical.id}:${insight.intensity.id}:${insight.primaryChakra.id}:${insight.secondaryChakra.id}`;
+  return `haf-energy-reading:v2:${dateKey}:${dayNumber}:${insight.keywordId}:${insight.direction.horizontal.id}:${insight.direction.vertical.id}:${insight.intensity.id}:${insight.primaryChakra.id}:${insight.secondaryChakra.id}`;
 }
 
 async function requestJson<T>(endpoint: string, payload: Record<string, unknown>): Promise<T | null> {
@@ -1069,14 +1077,14 @@ function ProfileScreen() {
   );
 }
 
-const sensingDimensions: Record<ChakraId, { core: string; words: string[]; tone: string }> = {
-  root: { core: "稳定", words: ["落地", "安定", "扎根", "承载"], tone: "#9c3141" },
-  sacral: { core: "生命力", words: ["焕发", "流动", "感受", "创造"], tone: "#e47b32" },
-  solar_plexus: { core: "行动力", words: ["突破", "勇气", "选择", "行动"], tone: "#e0b344" },
-  heart: { core: "关系", words: ["链接", "敞开", "共鸣", "接纳"], tone: "#75b99a" },
-  throat: { core: "表达", words: ["发声", "真实", "沟通", "释放"], tone: "#3db7d4" },
-  third_eye: { core: "洞察", words: ["内观", "求索", "看见", "清明"], tone: "#526bd3" },
-  crown: { core: "意识", words: ["觉醒", "超越", "整合", "领悟"], tone: "#9b72d0" },
+const sensingDimensions: Record<ChakraId, { core: string; tone: string }> = {
+  root: { core: "稳定", tone: "#9c3141" },
+  sacral: { core: "生命力", tone: "#e47b32" },
+  solar_plexus: { core: "行动力", tone: "#e0b344" },
+  heart: { core: "关系", tone: "#75b99a" },
+  throat: { core: "表达", tone: "#3db7d4" },
+  third_eye: { core: "洞察", tone: "#526bd3" },
+  crown: { core: "意识", tone: "#9b72d0" },
 };
 
 type SensingCursor = {
@@ -1105,6 +1113,7 @@ function SensingRippleCanvas({ cursor, active }: { cursor: SensingCursor; active
   const lastSequenceRef = useRef(-1);
   const ripplesRef = useRef<Array<{ x: number; y: number; pressure: number; tone: string; born: number }>>([]);
   const trailRef = useRef<Array<{ x: number; y: number; pressure: number; tone: string; born: number }>>([]);
+  const lastRippleAtRef = useRef(0);
 
   useEffect(() => {
     cursorRef.current = cursor;
@@ -1113,9 +1122,12 @@ function SensingRippleCanvas({ cursor, active }: { cursor: SensingCursor; active
     lastSequenceRef.current = cursor.sequence;
     const born = performance.now();
     trailRef.current.push({ x: cursor.x, y: cursor.y, pressure: cursor.pressure, tone: cursor.tone, born });
-    if (active) ripplesRef.current.push({ x: cursor.x, y: cursor.y, pressure: cursor.pressure, tone: cursor.tone, born });
-    trailRef.current = trailRef.current.slice(-28);
-    ripplesRef.current = ripplesRef.current.slice(-18);
+    if (active && born - lastRippleAtRef.current >= 420) {
+      ripplesRef.current.push({ x: cursor.x, y: cursor.y, pressure: cursor.pressure, tone: cursor.tone, born });
+      lastRippleAtRef.current = born;
+    }
+    trailRef.current = trailRef.current.slice(-18);
+    ripplesRef.current = ripplesRef.current.slice(-5);
   }, [active, cursor]);
 
   useEffect(() => {
@@ -1125,7 +1137,15 @@ function SensingRippleCanvas({ cursor, active }: { cursor: SensingCursor; active
     if (!context) return undefined;
     const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     let frame = 0;
+    let lastFrameTime = 0;
     const render = (now: number) => {
+      const hasTransientMotion = activeRef.current || trailRef.current.length > 0 || ripplesRef.current.length > 0;
+      const frameInterval = hasTransientMotion ? 32 : 250;
+      if (now - lastFrameTime < frameInterval) {
+        frame = window.requestAnimationFrame(render);
+        return;
+      }
+      lastFrameTime = now;
       const bounds = canvas.getBoundingClientRect();
       const ratio = Math.min(window.devicePixelRatio || 1, 2);
       const width = Math.max(1, Math.round(bounds.width * ratio));
@@ -1148,7 +1168,7 @@ function SensingRippleCanvas({ cursor, active }: { cursor: SensingCursor; active
       context.fillStyle = glow;
       context.fillRect(0, 0, bounds.width, bounds.height);
 
-      const visibleTrail = prefersReducedMotion ? [] : trailRef.current.filter((item) => now - item.born < 1700);
+      const visibleTrail = prefersReducedMotion ? [] : trailRef.current.filter((item) => now - item.born < 1200);
       trailRef.current = visibleTrail;
       if (visibleTrail.length > 1) {
         const latest = visibleTrail[visibleTrail.length - 1];
@@ -1172,16 +1192,15 @@ function SensingRippleCanvas({ cursor, active }: { cursor: SensingCursor; active
         context.shadowBlur = 0;
       }
 
-      ripplesRef.current = prefersReducedMotion ? [] : ripplesRef.current.filter((ripple) => now - ripple.born < 1500);
+      ripplesRef.current = prefersReducedMotion ? [] : ripplesRef.current.filter((ripple) => now - ripple.born < 950);
       ripplesRef.current.forEach((ripple) => {
-        const age = clampSensing((now - ripple.born) / 1500, 0, 1);
-        const rippleRgb = toneRgb(ripple.tone);
+        const age = clampSensing((now - ripple.born) / 950, 0, 1);
         context.beginPath();
-        context.arc(ripple.x, ripple.y, 12 + age * (58 + ripple.pressure * 58), 0, Math.PI * 2);
-        context.lineWidth = 1 + (1 - age) * ripple.pressure * 2.4;
-        context.strokeStyle = `rgba(${rippleRgb.r},${rippleRgb.g},${rippleRgb.b},${(1 - age) * (.36 + ripple.pressure * .34)})`;
-        context.shadowColor = `rgba(255,255,255,${(1 - age) * .34})`;
-        context.shadowBlur = 8 + ripple.pressure * 14;
+        context.arc(ripple.x, ripple.y, 14 + age * (42 + ripple.pressure * 34), 0, Math.PI * 2);
+        context.lineWidth = .8 + (1 - age) * ripple.pressure * 1.2;
+        context.strokeStyle = `rgba(255,255,255,${(1 - age) * (.24 + ripple.pressure * .2)})`;
+        context.shadowColor = `rgba(255,255,255,${(1 - age) * .26})`;
+        context.shadowBlur = 6 + ripple.pressure * 8;
         context.stroke();
       });
       context.shadowBlur = 0;
@@ -1197,29 +1216,30 @@ function SensingRippleCanvas({ cursor, active }: { cursor: SensingCursor; active
 
 function CompassScreen() {
   const flow = useFlow();
-  const { point, setPoint, lifePath, dayNumber } = useJourney();
-  const initialProjection = useMemo(() => projectChakras(point, lifePath, dayNumber), [dayNumber, lifePath, point]);
+  const { point, setPoint, lifePath, dayNumber, dateKey } = useJourney();
+  const initialInsight = useMemo(() => synthesizeEnergy(point, lifePath, dayNumber, dateKey), [dateKey, dayNumber, lifePath, point]);
   const [phase, setPhase] = useState<"idle" | "sensing" | "locked">("idle");
-  const [dimensionId, setDimensionId] = useState<ChakraId>(initialProjection.primary.id);
-  const [currentWord, setCurrentWord] = useState(sensingDimensions[initialProjection.primary.id].words[0]);
+  const [dimensionId, setDimensionId] = useState<ChakraId>(initialInsight.primaryChakra.id);
+  const [currentKeywordId, setCurrentKeywordId] = useState<KeywordId>(initialInsight.keywordId);
+  const [currentDirection, setCurrentDirection] = useState(initialInsight.direction);
+  const [readyToComplete, setReadyToComplete] = useState(false);
   const [cursor, setCursor] = useState<SensingCursor>({
     x: 196,
     y: 448,
     xRatio: (point.x + 1) / 2,
     yRatio: (point.y + 1) / 2,
     pressure: .22,
-    tone: sensingDimensions[initialProjection.primary.id].tone,
+    tone: sensingDimensions[initialInsight.primaryChakra.id].tone,
     sequence: 0,
   });
   const livePointRef = useRef(point);
-  const wordIndexRef = useRef<Record<string, number>>({});
+  const pendingInsightRef = useRef(initialInsight);
   const sessionRef = useRef({ start: 0, lastTime: 0, lastX: 196, lastY: 448, totalTravel: 0, lastWordAt: 0 });
 
-  const advanceWord = (nextDimensionId: ChakraId) => {
-    const words = sensingDimensions[nextDimensionId].words;
-    const nextIndex = ((wordIndexRef.current[nextDimensionId] ?? -1) + 1) % words.length;
-    wordIndexRef.current[nextDimensionId] = nextIndex;
-    setCurrentWord(words[nextIndex]);
+  const revealInsight = (insight: EnergyInsight) => {
+    setCurrentKeywordId(insight.keywordId);
+    setCurrentDirection(insight.direction);
+    setDimensionId(insight.primaryChakra.id);
   };
 
   const updateGesture = (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -1246,11 +1266,13 @@ function CompassScreen() {
       y: clampSensing(rawPoint.y + forcefulMovement * .3 - slowCenter * .22, -.88, .88),
     };
     livePointRef.current = shapedPoint;
-    const projection = projectChakras(shapedPoint, lifePath, dayNumber);
-    const nextDimensionId = projection.primary.id;
-    if (nextDimensionId !== dimensionId && now - session.lastWordAt > 520) {
-      setDimensionId(nextDimensionId);
-      advanceWord(nextDimensionId);
+    const nextInsight = synthesizeEnergy(shapedPoint, lifePath, dayNumber, dateKey);
+    pendingInsightRef.current = nextInsight;
+    const nextDimensionId = nextInsight.primaryChakra.id;
+    setDimensionId(nextDimensionId);
+    setCurrentDirection(nextInsight.direction);
+    if (nextInsight.keywordId !== currentKeywordId && now - session.lastWordAt >= 1650) {
+      revealInsight(nextInsight);
       session.lastWordAt = now;
     }
     const nativePressure = event.pressure > 0 ? event.pressure : 0;
@@ -1276,15 +1298,22 @@ function CompassScreen() {
       const session = sessionRef.current;
       const holdPressure = clampSensing((now - session.start) / 1200, 0, 1);
       setCursor((current) => ({ ...current, pressure: Math.max(current.pressure, .22 + holdPressure * .46), sequence: current.sequence + 1 }));
-      if (now - session.lastWordAt >= 1750) {
-        const projection = projectChakras(livePointRef.current, lifePath, dayNumber);
-        setDimensionId(projection.primary.id);
-        advanceWord(projection.primary.id);
+      if (now - session.lastWordAt >= 1650) {
+        revealInsight(pendingInsightRef.current);
         session.lastWordAt = now;
       }
     }, 140);
     return () => window.clearInterval(timer);
-  }, [dayNumber, lifePath, phase]);
+  }, [phase]);
+
+  useEffect(() => {
+    if (phase !== "locked") {
+      setReadyToComplete(false);
+      return undefined;
+    }
+    const timer = window.setTimeout(() => setReadyToComplete(true), 650);
+    return () => window.clearTimeout(timer);
+  }, [phase]);
 
   const beginSensing = (event: ReactPointerEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -1294,7 +1323,7 @@ function CompassScreen() {
     const localX = clampSensing(event.clientX - bounds.left, 0, bounds.width);
     const localY = clampSensing(event.clientY - bounds.top, 0, bounds.height);
     sessionRef.current = { start: now, lastTime: now, lastX: localX, lastY: localY, totalTravel: 0, lastWordAt: now };
-    wordIndexRef.current = {};
+    pendingInsightRef.current = synthesizeEnergy(livePointRef.current, lifePath, dayNumber, dateKey);
     setPhase("sensing");
     updateGesture(event);
   };
@@ -1304,11 +1333,12 @@ function CompassScreen() {
     updateGesture(event);
     event.currentTarget.releasePointerCapture(event.pointerId);
     setPoint(livePointRef.current);
+    revealInsight(pendingInsightRef.current);
     setPhase("locked");
     setCursor((current) => ({ ...current, pressure: Math.max(.72, current.pressure), sequence: current.sequence + 1 }));
   };
 
-  const dimension = sensingDimensions[dimensionId];
+  const currentWord = synthesisModel.keywords[currentKeywordId].display;
   const backgroundX = (cursor.xRatio - .5) * -18;
   const backgroundY = (cursor.yRatio - .5) * -14;
   return (
@@ -1333,7 +1363,7 @@ function CompassScreen() {
           aria-valuemin={-100}
           aria-valuemax={100}
           aria-valuenow={Math.round(livePointRef.current.x * 100)}
-          aria-valuetext={`${dimension.core} · ${currentWord}`}
+          aria-valuetext={`${currentDirection.horizontal.label} · ${currentDirection.vertical.label} · ${currentWord}`}
           tabIndex={0}
           onPointerDown={beginSensing}
           onPointerMove={(event) => event.currentTarget.hasPointerCapture(event.pointerId) && updateGesture(event)}
@@ -1360,10 +1390,10 @@ function CompassScreen() {
               {currentWord}
             </motion.strong>
           </AnimatePresence>
-          <p>{phase === "idle" ? "按住画面，让手指随直觉移动" : phase === "sensing" ? "当一个词与你相遇，就松开手指" : "这个词由你的移动、停留与力度共同唤出"}</p>
+          <p>{phase === "idle" ? "按住画面，让手指随直觉移动" : phase === "sensing" ? `${currentDirection.horizontal.label} · ${currentDirection.vertical.label}` : "由今日主旋律、你的动作与能量落点共同浮现"}</p>
         </section>
         <AnimatePresence>
-          {phase === "locked" && (
+          {phase === "locked" && readyToComplete && (
             <motion.button
               className="sensing-complete"
               onClick={() => flow.push(makeScreen("synthesis"))}
@@ -1439,12 +1469,12 @@ function ResultScreen() {
         <section className="result-insight">
           <div className="result-copy">
             <small>今日能量回响</small>
-            <h1>{insight.dailyTheme.display}</h1>
+            <h1>{insight.compositeTitle}</h1>
             <p>{energyReading}</p>
           </div>
           <div className="energy-facets" aria-label="今日能量的三个线索">
             <span><small>今日灵数</small><strong>{dayNumber}</strong><em>{insight.dailyTheme.display}</em></span>
-            <span><small>此刻行动</small><strong>{insight.direction.horizontal.label}</strong><em>{insight.direction.vertical.label}</em></span>
+            <span><small>此刻方向</small><strong>{insight.direction.horizontal.label}</strong><em>{insight.direction.vertical.label}</em></span>
             <span><small>能量落点</small><strong>{insight.primaryChakra.zh}</strong><em>{insight.primaryChakra.themes.slice(0, 2).join(" · ")}</em></span>
           </div>
         </section>

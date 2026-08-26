@@ -22,6 +22,7 @@
     "welcome": "/Users/at_lp007/Documents/HAF_miniapp/haf-energy-journey-h5/qa/visual-refresh-2026-08-26/welcome-implementation.png",
     "profile": "/Users/at_lp007/Documents/HAF_miniapp/haf-energy-journey-h5/qa/visual-refresh-2026-08-26/profile-implementation.png",
     "compass-idle": "/Users/at_lp007/Documents/HAF_miniapp/haf-energy-journey-h5/qa/visual-refresh-2026-08-26/compass-idle-implementation.png",
+    "compass-active": "/Users/at_lp007/Documents/HAF_miniapp/haf-energy-journey-h5/qa/visual-refresh-2026-08-26/compass-active-implementation.png",
     "compass": "/Users/at_lp007/Documents/HAF_miniapp/haf-energy-journey-h5/qa/visual-refresh-2026-08-26/compass-implementation.png",
     "synthesis": "/Users/at_lp007/Documents/HAF_miniapp/haf-energy-journey-h5/qa/visual-refresh-2026-08-26/synthesis-implementation.png",
     "result": "/Users/at_lp007/Documents/HAF_miniapp/haf-energy-journey-h5/qa/visual-refresh-2026-08-26/result-implementation.png",
@@ -74,6 +75,9 @@
     "primaryCTA": "passed",
     "sensingBackground": "/assets/haf/visual-refresh/intuitive-flow-field-v1.png",
     "sensingGesture": "hold-drag-release locked a weighted word",
+    "lockedSensingWord": "力量",
+    "resultCompositeTitle": "力量 · 表达",
+    "courseReasonUsesLockedWord": true,
     "completionButton": {
       "backgroundColor": "rgba(255, 255, 255, 0.18)",
       "borderRadius": "999px",

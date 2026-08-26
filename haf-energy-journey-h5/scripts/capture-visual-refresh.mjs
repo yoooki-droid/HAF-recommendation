@@ -100,7 +100,7 @@ await page.getByRole("button", { name: "year增加" }).click();
 await page.getByLabel("当前城市").fill("苏州");
 await page.getByRole("button", { name: "day增加" }).click();
 await profileScreen.getByRole("button", { name: "开启今日探索" }).click();
-const { screen: compassScreen } = await captureJourneyScreen("compass-screen", "compass-idle");
+const { screen: compassScreen, journeyModule: compassModule } = await captureJourneyScreen("compass-screen", "compass-idle");
 const sensingBackgroundSource = await compassScreen.locator(".sensing-background").getAttribute("src");
 if (sensingBackgroundSource !== "/assets/haf/visual-refresh/intuitive-flow-field-v1.png") {
   throw new Error(`Expected generated intuitive sensing field, got ${sensingBackgroundSource}`);
@@ -114,10 +114,16 @@ if (!sensingBox) throw new Error("Full-screen sensing zone did not render");
 await page.mouse.move(sensingBox.x + sensingBox.width * .46, sensingBox.y + sensingBox.height * .45);
 await page.mouse.down();
 await page.mouse.move(sensingBox.x + sensingBox.width * .82, sensingBox.y + sensingBox.height * .70, { steps: 5 });
-await page.waitForTimeout(1_850);
+await page.waitForTimeout(500);
+const activeSensingScreenshotPath = path.join(outputDir, "compass-active-implementation.png");
+await compassModule.screenshot({ path: activeSensingScreenshotPath, animations: "allow" });
+screenshots["compass-active"] = activeSensingScreenshotPath;
+await page.waitForTimeout(1_350);
 await page.mouse.up();
 await page.waitForFunction(() => document.querySelector("[data-testid='compass-screen']")?.getAttribute("data-phase") === "locked");
 const completeButton = compassScreen.getByRole("button", { name: "完成感应" });
+await completeButton.waitFor({ state: "visible" });
+const lockedSensingWord = (await compassScreen.locator(".sensing-word strong").innerText()).trim();
 const completeStyle = await completeButton.evaluate((element) => {
   const style = window.getComputedStyle(element);
   return {
@@ -142,9 +148,17 @@ await resultScreen.waitFor({ state: "visible", timeout: 12_000 });
 const resultModule = resultScreen.locator("xpath=ancestor::section[@data-testid='journey-module']");
 
 await captureJourneyScreen("result-screen", "result");
+const resultCompositeTitle = (await resultScreen.locator(".result-copy h1").innerText()).trim();
+if (!resultCompositeTitle.includes(lockedSensingWord)) {
+  throw new Error(`Expected result title ${resultCompositeTitle} to preserve locked sensing word ${lockedSensingWord}`);
+}
 
 const cards = page.getByTestId("course-card");
 if (await cards.count() !== 3) throw new Error(`Expected exactly 3 course cards, got ${await cards.count()}`);
+const courseFitReasons = await page.locator(".course-copy p").allTextContents();
+if (!courseFitReasons.some((reason) => reason.includes(`“${lockedSensingWord}”`))) {
+  throw new Error(`Expected at least one course reason to cite locked sensing word ${lockedSensingWord}, got ${courseFitReasons.join(" | ")}`);
+}
 const chakraIdByLabel = {
   海底轮: "root",
   生殖轮: "sacral",
@@ -289,6 +303,9 @@ const summary = {
     primaryCTA: "passed",
     sensingBackground: sensingBackgroundSource,
     sensingGesture: "hold-drag-release locked a weighted word",
+    lockedSensingWord,
+    resultCompositeTitle,
+    courseReasonUsesLockedWord: true,
     completionButton: completeStyle,
     carousel: railScrollLeft > 0 ? "passed" : "failed",
     favorite: "passed",
