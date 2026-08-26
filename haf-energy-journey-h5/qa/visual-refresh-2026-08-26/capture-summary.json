@@ -21,6 +21,7 @@
     "loading": "/Users/at_lp007/Documents/HAF_miniapp/haf-energy-journey-h5/qa/visual-refresh-2026-08-26/loading-implementation.png",
     "welcome": "/Users/at_lp007/Documents/HAF_miniapp/haf-energy-journey-h5/qa/visual-refresh-2026-08-26/welcome-implementation.png",
     "profile": "/Users/at_lp007/Documents/HAF_miniapp/haf-energy-journey-h5/qa/visual-refresh-2026-08-26/profile-implementation.png",
+    "compass-idle": "/Users/at_lp007/Documents/HAF_miniapp/haf-energy-journey-h5/qa/visual-refresh-2026-08-26/compass-idle-implementation.png",
     "compass": "/Users/at_lp007/Documents/HAF_miniapp/haf-energy-journey-h5/qa/visual-refresh-2026-08-26/compass-implementation.png",
     "synthesis": "/Users/at_lp007/Documents/HAF_miniapp/haf-energy-journey-h5/qa/visual-refresh-2026-08-26/synthesis-implementation.png",
     "result": "/Users/at_lp007/Documents/HAF_miniapp/haf-energy-journey-h5/qa/visual-refresh-2026-08-26/result-implementation.png",
@@ -37,6 +38,10 @@
       "/assets/haf/visual-refresh/energy-gradient.jpeg"
     ],
     "profile": [
+      "/assets/haf/visual-refresh/energy-gradient.jpeg",
+      "/assets/haf/visual-refresh/energy-gradient.jpeg"
+    ],
+    "compass-idle": [
       "/assets/haf/visual-refresh/energy-gradient.jpeg",
       "/assets/haf/visual-refresh/energy-gradient.jpeg"
     ],
@@ -67,6 +72,14 @@
     "birthTimeIntervals": "早上 / 中午 / 下午 / 晚上 / 不确定",
     "profileControls": "passed",
     "primaryCTA": "passed",
+    "sensingBackground": "/assets/haf/visual-refresh/intuitive-flow-field-v1.png",
+    "sensingGesture": "hold-drag-release locked a weighted word",
+    "completionButton": {
+      "backgroundColor": "rgba(255, 255, 255, 0.18)",
+      "borderRadius": "999px",
+      "height": "52px",
+      "backdropFilter": "blur(16px)"
+    },
     "carousel": "passed",
     "favorite": "passed",
     "favoritesEntry": "passed",

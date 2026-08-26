@@ -1069,65 +1069,310 @@ function ProfileScreen() {
   );
 }
 
-function energyMeaning(point: Point) {
-  if (point.x < -0.18 && point.y < -0.12) return { direction: "向内沉淀", chakra: "心轮", line: "你正在把向外的力量收回来，重新听见自己的感受。" };
-  if (point.x > 0.3) return { direction: "向外连接", chakra: "喉轮", line: "你想靠近真实的交流，也准备让自己的声音被听见。" };
-  if (point.y > 0.28) return { direction: "唤醒活力", chakra: "太阳轮", line: "你的身体正在寻找行动感，让力量重新回到当下。" };
-  return { direction: "安静平衡", chakra: "眉心轮", line: "你正在安静地整理内在，让答案慢慢变得清晰。" };
+const sensingDimensions: Record<ChakraId, { core: string; words: string[]; tone: string }> = {
+  root: { core: "稳定", words: ["落地", "安定", "扎根", "承载"], tone: "#9c3141" },
+  sacral: { core: "生命力", words: ["焕发", "流动", "感受", "创造"], tone: "#e47b32" },
+  solar_plexus: { core: "行动力", words: ["突破", "勇气", "选择", "行动"], tone: "#e0b344" },
+  heart: { core: "关系", words: ["链接", "敞开", "共鸣", "接纳"], tone: "#75b99a" },
+  throat: { core: "表达", words: ["发声", "真实", "沟通", "释放"], tone: "#3db7d4" },
+  third_eye: { core: "洞察", words: ["内观", "求索", "看见", "清明"], tone: "#526bd3" },
+  crown: { core: "意识", words: ["觉醒", "超越", "整合", "领悟"], tone: "#9b72d0" },
+};
+
+type SensingCursor = {
+  x: number;
+  y: number;
+  xRatio: number;
+  yRatio: number;
+  pressure: number;
+  tone: string;
+  sequence: number;
+};
+
+function clampSensing(value: number, minimum: number, maximum: number) {
+  return Math.max(minimum, Math.min(maximum, value));
 }
 
-function EnergyCompass() {
-  const { point, setPoint } = useJourney();
-  const mapRef = useRef<HTMLDivElement>(null);
-  const move = (event: ReactPointerEvent<HTMLDivElement>) => {
-    const bounds = event.currentTarget.getBoundingClientRect();
-    setPoint({
-      x: Math.max(-0.88, Math.min(0.88, ((event.clientX - bounds.left) / bounds.width) * 2 - 1)),
-      y: Math.max(-0.88, Math.min(0.88, ((event.clientY - bounds.top) / bounds.height) * 2 - 1)),
-    });
-  };
-  return (
-    <div className="compass-shell">
-      <span className="axis-label top">安静沉淀</span>
-      <span className="axis-label left">向内独处</span>
-      <span className="axis-label right">向外连接</span>
-      <span className="axis-label bottom">唤醒活力</span>
-      <div
-        ref={mapRef}
-        className="compass-map"
-        data-scroll-drag="ignore"
-        onPointerDown={(event) => { event.currentTarget.setPointerCapture(event.pointerId); move(event); }}
-        onPointerMove={(event) => event.currentTarget.hasPointerCapture(event.pointerId) && move(event)}
-      >
-        <i className="axis horizontal" /><i className="axis vertical" />
-        <i className="ring ring-one" /><i className="ring ring-two" />
-        <motion.span
-          className="energy-orb compass-orb"
-          role="img"
-          aria-label="你此刻的能量光点"
-          animate={{ left: `${(point.x + 1) * 50}%`, top: `${(point.y + 1) * 50}%`, scale: [1, 1.05, 1] }}
-          transition={{ left: { type: "spring", stiffness: 320, damping: 28 }, top: { type: "spring", stiffness: 320, damping: 28 }, scale: { duration: 2.6, repeat: Infinity } }}
-        ><OrbLayers /></motion.span>
-      </div>
-    </div>
-  );
+function toneRgb(hex: string) {
+  const value = Number.parseInt(hex.slice(1), 16);
+  return { r: value >> 16, g: (value >> 8) & 255, b: value & 255 };
+}
+
+function SensingRippleCanvas({ cursor, active }: { cursor: SensingCursor; active: boolean }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const cursorRef = useRef(cursor);
+  const activeRef = useRef(active);
+  const lastSequenceRef = useRef(-1);
+  const ripplesRef = useRef<Array<{ x: number; y: number; pressure: number; tone: string; born: number }>>([]);
+  const trailRef = useRef<Array<{ x: number; y: number; pressure: number; tone: string; born: number }>>([]);
+
+  useEffect(() => {
+    cursorRef.current = cursor;
+    activeRef.current = active;
+    if (cursor.sequence === lastSequenceRef.current) return;
+    lastSequenceRef.current = cursor.sequence;
+    const born = performance.now();
+    trailRef.current.push({ x: cursor.x, y: cursor.y, pressure: cursor.pressure, tone: cursor.tone, born });
+    if (active) ripplesRef.current.push({ x: cursor.x, y: cursor.y, pressure: cursor.pressure, tone: cursor.tone, born });
+    trailRef.current = trailRef.current.slice(-28);
+    ripplesRef.current = ripplesRef.current.slice(-18);
+  }, [active, cursor]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return undefined;
+    const context = canvas.getContext("2d");
+    if (!context) return undefined;
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let frame = 0;
+    const render = (now: number) => {
+      const bounds = canvas.getBoundingClientRect();
+      const ratio = Math.min(window.devicePixelRatio || 1, 2);
+      const width = Math.max(1, Math.round(bounds.width * ratio));
+      const height = Math.max(1, Math.round(bounds.height * ratio));
+      if (canvas.width !== width || canvas.height !== height) {
+        canvas.width = width;
+        canvas.height = height;
+      }
+      context.setTransform(ratio, 0, 0, ratio, 0, 0);
+      context.clearRect(0, 0, bounds.width, bounds.height);
+      context.globalCompositeOperation = "screen";
+
+      const current = cursorRef.current;
+      const rgb = toneRgb(current.tone);
+      const glowRadius = 74 + current.pressure * 74;
+      const glow = context.createRadialGradient(current.x, current.y, 2, current.x, current.y, glowRadius);
+      glow.addColorStop(0, `rgba(255,255,255,${activeRef.current ? .36 : .18})`);
+      glow.addColorStop(.24, `rgba(${rgb.r},${rgb.g},${rgb.b},${.28 + current.pressure * .18})`);
+      glow.addColorStop(1, `rgba(${rgb.r},${rgb.g},${rgb.b},0)`);
+      context.fillStyle = glow;
+      context.fillRect(0, 0, bounds.width, bounds.height);
+
+      const visibleTrail = prefersReducedMotion ? [] : trailRef.current.filter((item) => now - item.born < 1700);
+      trailRef.current = visibleTrail;
+      if (visibleTrail.length > 1) {
+        const latest = visibleTrail[visibleTrail.length - 1];
+        const latestRgb = toneRgb(latest.tone);
+        context.beginPath();
+        context.moveTo(visibleTrail[0].x, visibleTrail[0].y);
+        for (let index = 1; index < visibleTrail.length; index += 1) {
+          const previous = visibleTrail[index - 1];
+          const item = visibleTrail[index];
+          const middleX = (previous.x + item.x) / 2;
+          const middleY = (previous.y + item.y) / 2;
+          context.quadraticCurveTo(previous.x, previous.y, middleX, middleY);
+        }
+        context.lineCap = "round";
+        context.lineJoin = "round";
+        context.lineWidth = 1.5 + latest.pressure * 4;
+        context.strokeStyle = `rgba(${latestRgb.r},${latestRgb.g},${latestRgb.b},.48)`;
+        context.shadowColor = `rgba(${latestRgb.r},${latestRgb.g},${latestRgb.b},.8)`;
+        context.shadowBlur = 18 + latest.pressure * 22;
+        context.stroke();
+        context.shadowBlur = 0;
+      }
+
+      ripplesRef.current = prefersReducedMotion ? [] : ripplesRef.current.filter((ripple) => now - ripple.born < 1500);
+      ripplesRef.current.forEach((ripple) => {
+        const age = clampSensing((now - ripple.born) / 1500, 0, 1);
+        const rippleRgb = toneRgb(ripple.tone);
+        context.beginPath();
+        context.arc(ripple.x, ripple.y, 12 + age * (58 + ripple.pressure * 58), 0, Math.PI * 2);
+        context.lineWidth = 1 + (1 - age) * ripple.pressure * 2.4;
+        context.strokeStyle = `rgba(${rippleRgb.r},${rippleRgb.g},${rippleRgb.b},${(1 - age) * (.36 + ripple.pressure * .34)})`;
+        context.shadowColor = `rgba(255,255,255,${(1 - age) * .34})`;
+        context.shadowBlur = 8 + ripple.pressure * 14;
+        context.stroke();
+      });
+      context.shadowBlur = 0;
+      context.globalCompositeOperation = "source-over";
+      frame = window.requestAnimationFrame(render);
+    };
+    frame = window.requestAnimationFrame(render);
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
+
+  return <canvas ref={canvasRef} className="sensing-ripple-canvas" data-testid="sensing-ripple-canvas" aria-hidden="true" />;
 }
 
 function CompassScreen() {
   const flow = useFlow();
-  const { point } = useJourney();
-  const reading = energyMeaning(point);
+  const { point, setPoint, lifePath, dayNumber } = useJourney();
+  const initialProjection = useMemo(() => projectChakras(point, lifePath, dayNumber), [dayNumber, lifePath, point]);
+  const [phase, setPhase] = useState<"idle" | "sensing" | "locked">("idle");
+  const [dimensionId, setDimensionId] = useState<ChakraId>(initialProjection.primary.id);
+  const [currentWord, setCurrentWord] = useState(sensingDimensions[initialProjection.primary.id].words[0]);
+  const [cursor, setCursor] = useState<SensingCursor>({
+    x: 196,
+    y: 448,
+    xRatio: (point.x + 1) / 2,
+    yRatio: (point.y + 1) / 2,
+    pressure: .22,
+    tone: sensingDimensions[initialProjection.primary.id].tone,
+    sequence: 0,
+  });
+  const livePointRef = useRef(point);
+  const wordIndexRef = useRef<Record<string, number>>({});
+  const sessionRef = useRef({ start: 0, lastTime: 0, lastX: 196, lastY: 448, totalTravel: 0, lastWordAt: 0 });
+
+  const advanceWord = (nextDimensionId: ChakraId) => {
+    const words = sensingDimensions[nextDimensionId].words;
+    const nextIndex = ((wordIndexRef.current[nextDimensionId] ?? -1) + 1) % words.length;
+    wordIndexRef.current[nextDimensionId] = nextIndex;
+    setCurrentWord(words[nextIndex]);
+  };
+
+  const updateGesture = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const now = performance.now();
+    const session = sessionRef.current;
+    const x = clampSensing(event.clientX - bounds.left, 0, bounds.width);
+    const y = clampSensing(event.clientY - bounds.top, 0, bounds.height);
+    const elapsed = Math.max(16, now - session.lastTime);
+    const distance = Math.hypot(x - session.lastX, y - session.lastY);
+    const speed = distance / elapsed;
+    session.totalTravel += distance;
+    const rawPoint = {
+      x: clampSensing((x / bounds.width) * 2 - 1, -.88, .88),
+      y: clampSensing((y / bounds.height) * 2 - 1, -.88, .88),
+    };
+    const radius = Math.hypot(rawPoint.x, rawPoint.y);
+    const hold = now - session.start;
+    const slowCenter = radius < .38 && speed < .24 && hold > 420 ? 1 : 0;
+    const wideMovement = session.totalTravel > bounds.width * .62 && radius > .42 ? 1 : 0;
+    const forcefulMovement = clampSensing((speed - .32) / .72, 0, 1);
+    const shapedPoint = {
+      x: clampSensing(rawPoint.x + wideMovement * .2 - slowCenter * .18, -.88, .88),
+      y: clampSensing(rawPoint.y + forcefulMovement * .3 - slowCenter * .22, -.88, .88),
+    };
+    livePointRef.current = shapedPoint;
+    const projection = projectChakras(shapedPoint, lifePath, dayNumber);
+    const nextDimensionId = projection.primary.id;
+    if (nextDimensionId !== dimensionId && now - session.lastWordAt > 520) {
+      setDimensionId(nextDimensionId);
+      advanceWord(nextDimensionId);
+      session.lastWordAt = now;
+    }
+    const nativePressure = event.pressure > 0 ? event.pressure : 0;
+    const pressure = clampSensing(.18 + nativePressure * .26 + Math.min(1, hold / 950) * .36 + forcefulMovement * .2, .18, 1);
+    setCursor((current) => ({
+      x,
+      y,
+      xRatio: x / bounds.width,
+      yRatio: y / bounds.height,
+      pressure,
+      tone: sensingDimensions[nextDimensionId].tone,
+      sequence: current.sequence + 1,
+    }));
+    session.lastTime = now;
+    session.lastX = x;
+    session.lastY = y;
+  };
+
+  useEffect(() => {
+    if (phase !== "sensing") return undefined;
+    const timer = window.setInterval(() => {
+      const now = performance.now();
+      const session = sessionRef.current;
+      const holdPressure = clampSensing((now - session.start) / 1200, 0, 1);
+      setCursor((current) => ({ ...current, pressure: Math.max(current.pressure, .22 + holdPressure * .46), sequence: current.sequence + 1 }));
+      if (now - session.lastWordAt >= 1750) {
+        const projection = projectChakras(livePointRef.current, lifePath, dayNumber);
+        setDimensionId(projection.primary.id);
+        advanceWord(projection.primary.id);
+        session.lastWordAt = now;
+      }
+    }, 140);
+    return () => window.clearInterval(timer);
+  }, [dayNumber, lifePath, phase]);
+
+  const beginSensing = (event: ReactPointerEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    const now = performance.now();
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const localX = clampSensing(event.clientX - bounds.left, 0, bounds.width);
+    const localY = clampSensing(event.clientY - bounds.top, 0, bounds.height);
+    sessionRef.current = { start: now, lastTime: now, lastX: localX, lastY: localY, totalTravel: 0, lastWordAt: now };
+    wordIndexRef.current = {};
+    setPhase("sensing");
+    updateGesture(event);
+  };
+
+  const finishSensing = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!event.currentTarget.hasPointerCapture(event.pointerId)) return;
+    updateGesture(event);
+    event.currentTarget.releasePointerCapture(event.pointerId);
+    setPoint(livePointRef.current);
+    setPhase("locked");
+    setCursor((current) => ({ ...current, pressure: Math.max(.72, current.pressure), sequence: current.sequence + 1 }));
+  };
+
+  const dimension = sensingDimensions[dimensionId];
+  const backgroundX = (cursor.xRatio - .5) * -18;
+  const backgroundY = (cursor.yRatio - .5) * -14;
   return (
     <EmbeddedScreen className="compass-host">
-      <div className="compass-screen" data-testid="compass-screen">
-        <header><small>捕捉此刻</small><h1>把光点放在更接近你的位置</h1><p>不用思考答案，跟随手指停下来的地方。</p></header>
-        <EnergyCompass />
-        <AnimatePresence mode="wait">
-          <motion.div className="live-reading" key={reading.direction} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-            <small>此刻的方向</small><strong>{reading.direction}</strong><span>{reading.line}</span>
-          </motion.div>
+      <div className={`compass-screen sensing-screen sensing-${phase}`} data-testid="compass-screen" data-phase={phase} data-dimension={dimensionId}>
+        <img
+          className="sensing-background"
+          src="/assets/haf/visual-refresh/intuitive-flow-field-v1.png"
+          alt=""
+          style={{ transform: `translate3d(${backgroundX}px, ${backgroundY}px, 0) scale(${1.035 + cursor.pressure * .025})` }}
+        />
+        <SensingRippleCanvas cursor={cursor} active={phase === "sensing"} />
+        <button className="visual-back sensing-back" onClick={() => flow.pop()} aria-label="返回">
+          <img src="/assets/haf/visual-refresh/back-chevron.svg" alt="" />
+        </button>
+        <header><small>今日能量感应</small><h1>让手指随直觉移动</h1><p>不必寻找方向，让颜色回应你的感受。</p></header>
+        <div
+          className="sensing-touch-zone"
+          data-scroll-drag="ignore"
+          role="slider"
+          aria-label="按住并移动手指感应此刻"
+          aria-valuemin={-100}
+          aria-valuemax={100}
+          aria-valuenow={Math.round(livePointRef.current.x * 100)}
+          aria-valuetext={`${dimension.core} · ${currentWord}`}
+          tabIndex={0}
+          onPointerDown={beginSensing}
+          onPointerMove={(event) => event.currentTarget.hasPointerCapture(event.pointerId) && updateGesture(event)}
+          onPointerUp={finishSensing}
+          onPointerCancel={() => setPhase("idle")}
+        >
+          <motion.img
+            className="sensing-orb"
+            src="/assets/haf/energy-orb-v2.png"
+            alt=""
+            animate={{
+              left: `${cursor.xRatio * 100}%`,
+              top: `${cursor.yRatio * 100}%`,
+              scale: .74 + cursor.pressure * .46,
+              opacity: phase === "idle" ? .72 : 1,
+            }}
+            transition={{ left: { type: "spring", stiffness: 420, damping: 34 }, top: { type: "spring", stiffness: 420, damping: 34 }, scale: { duration: .18 } }}
+          />
+        </div>
+        <section className="sensing-word" aria-live="polite">
+          <motion.small layout>{phase === "locked" ? "此刻与你产生回应的是——" : "此刻浮现"}</motion.small>
+          <AnimatePresence mode="wait">
+            <motion.strong key={currentWord} initial={{ opacity: 0, y: 9, filter: "blur(7px)" }} animate={{ opacity: 1, y: 0, filter: "blur(0px)" }} exit={{ opacity: 0, y: -7, filter: "blur(6px)" }} transition={{ duration: .58, ease: "easeOut" }}>
+              {currentWord}
+            </motion.strong>
+          </AnimatePresence>
+          <p>{phase === "idle" ? "按住画面，让手指随直觉移动" : phase === "sensing" ? "当一个词与你相遇，就松开手指" : "这个词由你的移动、停留与力度共同唤出"}</p>
+        </section>
+        <AnimatePresence>
+          {phase === "locked" && (
+            <motion.button
+              className="sensing-complete"
+              onClick={() => flow.push(makeScreen("synthesis"))}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
+            >完成感应 <ChevronRightIcon /></motion.button>
+          )}
         </AnimatePresence>
-        <GlowButton onClick={() => flow.push(makeScreen("synthesis"))}>完成感应</GlowButton>
       </div>
     </EmbeddedScreen>
   );
@@ -1152,8 +1397,8 @@ function SynthesisScreen() {
       <div className="synthesis-screen" data-testid="synthesis-screen">
         <div className="synthesis-orbits"><motion.div className="energy-orb synthesis-orb" animate={{ y: [-12, 16, -12], rotate: [0, 10, 0] }} transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut" }}><OrbLayers /></motion.div></div>
         <small>正在合成今日线索</small>
-        <h1>让数字、脉轮与此刻的心流<br />慢慢靠近彼此</h1>
-        <div className="signal-row"><span>灵数</span><i /><span>脉轮</span><i /><span>能量</span></div>
+        <h1>让数字、色彩与此刻的心流<br />慢慢靠近彼此</h1>
+        <div className="signal-row"><span>灵数</span><i /><span>色彩</span><i /><span>感应</span></div>
       </div>
     </EmbeddedScreen>
   );

@@ -138,29 +138,32 @@ button { font: inherit; -webkit-tap-highlight-color: transparent; }
 .profile-screen > .glow-button { min-height: 61px; margin-top: auto; border: 1px solid rgba(255,255,255,.72); background: rgba(255,255,255,.18); box-shadow: 0 12px 28px rgba(0,0,0,.16); font-size: 16px; font-weight: 600; backdrop-filter: blur(18px); }
 .profile-screen > .glow-button svg { display: none; }
 
-.compass-screen header h1 { margin: 7px 0 5px; font-size: var(--haf-type-title); line-height: 1.2; font-weight: 620; letter-spacing: -.04em; }
-.compass-screen header p { margin: 0; color: rgba(255,255,255,.75); font-size: 14px; line-height: 1.55; }
+.compass-host .journey-module { background: #101a46; }
+.compass-host .energy-atmosphere { display: none; }
+.compass-host .journey-module::after { background: rgba(5, 10, 33, .13); }
+.compass-screen { position: relative; height: 100%; overflow: hidden; color: white; isolation: isolate; }
+.sensing-background { position: absolute; z-index: 0; inset: -3%; width: 106%; height: 106%; object-fit: cover; pointer-events: none; will-change: transform; transition: transform 180ms cubic-bezier(.2,.75,.25,1); }
+.sensing-ripple-canvas { position: absolute; z-index: 2; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.sensing-back { z-index: 8; }
+.compass-screen header { position: absolute; z-index: 6; top: calc(var(--haf-safe-top) + 46px); right: 24px; left: 24px; text-align: center; pointer-events: none; }
+.compass-screen header small { color: rgba(255,255,255,.7); font-size: 13px; letter-spacing: .09em; }
+.compass-screen header h1 { margin: 10px 0 7px; font-size: 28px; line-height: 1.18; font-weight: 640; letter-spacing: -.045em; text-shadow: 0 2px 18px rgba(14,25,70,.35); }
+.compass-screen header p { margin: 0; color: rgba(255,255,255,.86); font-size: 14px; line-height: 1.55; }
+.sensing-touch-zone { position: absolute; z-index: 3; inset: 0; outline: none; touch-action: none; -webkit-user-select: none; user-select: none; }
+.sensing-touch-zone:focus-visible { box-shadow: inset 0 0 0 2px rgba(255,255,255,.72); }
+.sensing-orb { position: absolute; z-index: 4; width: 68px; height: 68px; margin: -34px; object-fit: contain; filter: saturate(1.08) brightness(1.06) drop-shadow(0 0 14px rgba(255,255,255,.78)) drop-shadow(0 0 36px rgba(145,169,255,.55)); pointer-events: none; }
+.sensing-word { position: absolute; z-index: 6; right: 25px; bottom: calc(var(--mobile-safe-area-height) + 64px); left: 25px; display: flex; flex-direction: column; align-items: center; text-align: center; pointer-events: none; transition: bottom .45s ease; }
+.sensing-locked .sensing-word { bottom: calc(var(--mobile-safe-area-height) + 110px); }
+.sensing-word small { min-height: 19px; color: rgba(255,255,255,.78); font-size: 13px; letter-spacing: .04em; }
+.sensing-word strong { min-height: 65px; margin-top: 5px; color: rgba(255,255,255,.93); font-size: 52px; line-height: 1.18; font-weight: 340; letter-spacing: .06em; text-shadow: 0 2px 25px rgba(39,47,116,.32); }
+.sensing-word p { margin: 8px 0 0; color: rgba(255,255,255,.86); font-size: 13px; line-height: 1.45; }
+.sensing-complete { position: absolute; z-index: 7; right: 27px; bottom: calc(var(--mobile-safe-area-height) + 20px); left: 27px; height: 52px; padding: 0 22px; border: 1px solid rgba(255,255,255,.72); border-radius: 999px; background: rgba(255,255,255,.18); box-shadow: 0 12px 28px rgba(5,10,33,.18), inset 0 1px 0 rgba(255,255,255,.12); color: white; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 16px; font-weight: 600; backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
+.sensing-complete svg { width: 16px; height: 16px; }
+.sensing-complete:active { background: rgba(255,255,255,.25); transform: scale(.99); }
 
-.compass-screen { height: 100%; box-sizing: border-box; padding: calc(var(--haf-safe-top) + 16px) 22px calc(var(--mobile-safe-area-height) + 21px); display: flex; flex-direction: column; }
-.compass-shell { position: relative; height: 381px; margin-top: 17px; border: 1px solid rgba(255,255,255,.44); border-radius: 25px; background: rgba(14,73,114,.25); box-shadow: inset 0 0 31px rgba(255,255,255,.08); backdrop-filter: blur(15px); }
-.compass-map { position: absolute; inset: 46px 40px; touch-action: none; }
-.axis { position: absolute; background: rgba(255,255,255,.36); pointer-events: none; }
-.axis.horizontal { top: 50%; right: 0; left: 0; height: 1px; }
-.axis.vertical { top: 0; bottom: 0; left: 50%; width: 1px; }
-.ring { position: absolute; left: 50%; top: 50%; border: 1px dashed rgba(255,255,255,.2); border-radius: 50%; transform: translate(-50%,-50%); pointer-events: none; }
-.ring-one { width: 130px; height: 130px; }
-.ring-two { width: 218px; height: 218px; }
-.compass-orb { position: absolute; z-index: 4; width: 72px; height: 72px; margin: -36px; filter: drop-shadow(0 0 15px rgba(255,255,255,.58)); pointer-events: none; }
-.axis-label { position: absolute; z-index: 3; color: rgba(255,255,255,.9); font-size: 12px; font-weight: 600; }
-.axis-label.top { top: 25px; left: 50%; transform: translateX(-50%); }
-.axis-label.bottom { bottom: 23px; left: 50%; transform: translateX(-50%); }
-.axis-label.left { left: 13px; top: 50%; width: 14px; transform: translateY(-50%); line-height: 1.5; }
-.axis-label.right { right: 13px; top: 50%; width: 14px; transform: translateY(-50%); line-height: 1.5; }
-.live-reading { min-height: 70px; padding: 12px 6px; box-sizing: border-box; display: grid; grid-template-columns: auto 1fr; column-gap: 9px; align-items: center; }
-.live-reading small { grid-row: 1 / 3; align-self: start; margin-top: 4px; color: rgba(255,255,255,.68); font-size: 12px; }
-.live-reading strong { font-size: 14px; }
-.live-reading span { color: rgba(255,255,255,.8); font-size: 14px; line-height: 1.5; }
-.compass-screen > .glow-button { margin-top: auto; }
+@media (prefers-reduced-motion: reduce) {
+  .sensing-background, .sensing-word { transition: none; }
+}
 
 .synthesis-screen { height: 100%; box-sizing: border-box; padding: 50px 27px 34px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
 .synthesis-orbits { position: relative; width: 226px; height: 226px; display: grid; place-items: center; }

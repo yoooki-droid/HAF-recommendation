@@ -100,13 +100,42 @@ await page.getByRole("button", { name: "year增加" }).click();
 await page.getByLabel("当前城市").fill("苏州");
 await page.getByRole("button", { name: "day增加" }).click();
 await profileScreen.getByRole("button", { name: "开启今日探索" }).click();
+const { screen: compassScreen } = await captureJourneyScreen("compass-screen", "compass-idle");
+const sensingBackgroundSource = await compassScreen.locator(".sensing-background").getAttribute("src");
+if (sensingBackgroundSource !== "/assets/haf/visual-refresh/intuitive-flow-field-v1.png") {
+  throw new Error(`Expected generated intuitive sensing field, got ${sensingBackgroundSource}`);
+}
+if (await compassScreen.locator(".compass-map, .axis, .ring, .axis-label").count()) {
+  throw new Error("Legacy compass axes or chakra-map markers are still visible");
+}
+const sensingZone = compassScreen.locator(".sensing-touch-zone");
+const sensingBox = await sensingZone.boundingBox();
+if (!sensingBox) throw new Error("Full-screen sensing zone did not render");
+await page.mouse.move(sensingBox.x + sensingBox.width * .46, sensingBox.y + sensingBox.height * .45);
+await page.mouse.down();
+await page.mouse.move(sensingBox.x + sensingBox.width * .82, sensingBox.y + sensingBox.height * .70, { steps: 5 });
+await page.waitForTimeout(1_850);
+await page.mouse.up();
+await page.waitForFunction(() => document.querySelector("[data-testid='compass-screen']")?.getAttribute("data-phase") === "locked");
+const completeButton = compassScreen.getByRole("button", { name: "完成感应" });
+const completeStyle = await completeButton.evaluate((element) => {
+  const style = window.getComputedStyle(element);
+  return {
+    backgroundColor: style.backgroundColor,
+    borderRadius: style.borderRadius,
+    height: style.height,
+    backdropFilter: style.backdropFilter || style.webkitBackdropFilter,
+  };
+});
+if (completeStyle.backgroundColor !== "rgba(255, 255, 255, 0.18)" || completeStyle.borderRadius !== "999px" || completeStyle.height !== "52px" || completeStyle.backdropFilter === "none") {
+  throw new Error(`Expected a 52px translucent glass completion button, got ${JSON.stringify(completeStyle)}`);
+}
+if (await compassScreen.locator(".sensing-dots, .pagination-dot").count()) {
+  throw new Error("Legacy sensing pagination dots are still present");
+}
+await page.waitForTimeout(700);
 await captureJourneyScreen("compass-screen", "compass");
-
-const compass = page.locator(".compass-map");
-const compassBox = await compass.boundingBox();
-if (!compassBox) throw new Error("Compass did not render");
-await page.mouse.click(compassBox.x + compassBox.width * 0.8, compassBox.y + compassBox.height * 0.68);
-await page.getByTestId("compass-screen").getByRole("button", { name: "完成感应" }).click();
+await completeButton.click();
 await captureJourneyScreen("synthesis-screen", "synthesis");
 const resultScreen = page.getByTestId("result-screen");
 await resultScreen.waitFor({ state: "visible", timeout: 12_000 });
@@ -258,6 +287,9 @@ const summary = {
     birthTimeIntervals: "早上 / 中午 / 下午 / 晚上 / 不确定",
     profileControls: "passed",
     primaryCTA: "passed",
+    sensingBackground: sensingBackgroundSource,
+    sensingGesture: "hold-drag-release locked a weighted word",
+    completionButton: completeStyle,
     carousel: railScrollLeft > 0 ? "passed" : "failed",
     favorite: "passed",
     favoritesEntry: "passed",
