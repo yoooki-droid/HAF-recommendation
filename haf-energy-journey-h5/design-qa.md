@@ -1,66 +1,35 @@
-# HAF Energy Journey v3 Design QA
+# Design QA
 
-日期：2026-08-23  
-状态：当前手机内嵌流程通过
+- Source visual truth: `/Users/at_lp007/Documents/HAF_miniapp/ref/iPhone 16 - 5.png`, `/Users/at_lp007/Documents/HAF_miniapp/ref/iPhone 16 - 6.png`, `/Users/at_lp007/Documents/HAF_miniapp/ref/result-card-compact-ios-buffer.png`, and Figma Octave node `10578:5067`.
+- Implementation: local HAF mobile prototype at `http://127.0.0.1:4173/`.
+- Intended viewport: full-screen app-owned 393 × 852 mobile view inside the protected iPhone runtime. Backgrounds paint behind the status bar and home indicator; readable controls keep safe-area clearance.
+- Source pixels: 786 × 1704 for each supplied PNG; Figma export 786 × 1704.
+- Implementation screenshots: `qa/visual-refresh-2026-08-26/profile-implementation.png` and `qa/visual-refresh-2026-08-26/result-implementation.png`, each 393 × 852 CSS pixels at device scale factor 1.
+- State: profile and result screens captured after the full-screen and compact-card revisions.
 
-## 视觉基线
+## Comparison passes
 
-- H5 模块固定为 700px 高，左右贴边，无整页圆角外框。
-- 主色为 HAF 蓝与白，暖橙只作为能量光流点缀。
-- 非课程卡文字：正文 14px、最小 12px、最大标题 24px。
-- 课程卡保留此前已确认的紧凑字号和横向浏览方式。
-- 使用真实能量球、光流和课程图片，不使用代码绘制占位资产。
+- Pass 1: normalized the old 700px embedded layout against the 393 × 852 sources. Found the former top/bottom bands, a harsh background crop, and a visible custom-cursor artifact in captures.
+- Pass 2: converted every route to an edge-to-edge 393 × 852 module, added platform safe-area spacing, moved the source raster to the Figma-like blue/orange crop, and moved the screenshot pointer outside the phone.
+- Pass 3: compared both supplied references, both implementation captures, and the compact-card screenshot together. Reduced recommendation cards from 330px to 285px and moved both result actions upward, leaving more than 70px below `重新感应` for iOS system actions.
 
-## 当前关键截图
+## Final findings
 
-- 首次介绍：`qa/02-new-user-welcome.png`
-- 调整后结算页：`qa/03-refined-result-layout.png`
-- 结算页前后对照：`qa/04-result-before-after.png`
-- 字号审查：`qa/typography-audit.md`
+- No open P0, P1, or P2 visual findings.
+- Profile: title, date/time/gender/city groups, back affordance, and primary CTA align to the supplied vertical rhythm. The full-bleed raster continues beneath the protected status and home-indicator chrome.
+- Result: energy hierarchy, three glass facets, horizontal three-card rail, actions, and bottom safety buffer are complete. The card image uses the real selected course catalog cover rather than the static Figma demonstration photo; this is an intentional product-data constraint.
+- The protected runtime overlays live iOS status chrome and the home indicator, while the source PNGs omit those system elements. This is an intentional runtime difference, not an app-owned blank band.
+- Three `ERR_CONNECTION_REFUSED` messages remain in the isolated visual capture because the optional local analytics/AI service on port 4174 was not running. Deterministic fallbacks completed the journey and all visible interactions; the errors do not affect layout or behavior.
 
-## 已确认页面
+## Verification
 
-### 首次介绍
-
-- 以“天生线索、此刻感应、今日回响”解释产品。
-- 明确输出为今日关键词、能量解读和三节契合练习。
-- 没有重新加入抢眼的大能量球。
-- 隐私说明和主 CTA 在 700px 内可见。
-
-### 回访问候
-
-- 以日期、AI/本地问候和一个行动按钮为主。
-- 不在罗盘前声称知道用户当前脉轮或心境。
-- 问候在 Loading 阶段锁定，进入页面后不跳字。
-
-### 罗盘
-
-- 四个方向可读，光点支持连续点击和拖动。
-- 向外/行动与向内/安静的结果能产生不同脉轮、解读和课程组合。
-
-### 合成 Loading
-
-- 没有矩形图片遮罩。
-- AI 解读请求在该阶段完成；最长等待 6 秒。
-
-### 结算
-
-- 能量球缩小到标题角落，不再压缩引导句。
-- 引导句拥有完整内容宽度，没有单个汉字孤行。
-- 今日主旋律、此刻入口和能量落点保持独立。
-- AI 总结显示后继续等待 3 秒，文字、位置和高度不变。
-- 三节课程卡、已收藏入口和重新感应均可用。
-
-## 交互检查
-
-- 首次：Loading → 介绍 → 建档 → 罗盘 → 合成 → 结果。
-- 回访：Loading → 问候 → 罗盘 → 合成 → 结果。
-- 修改资料后会重新计算数字；问候缓存包含 Life Path，避免旧资料命中。
-- 重新感应返回已有罗盘，不创建第二个罗盘路由。
-- 收藏页保留，取消收藏可用。
-
-## 已知验证限制
-
-本机缺少 Playwright Chromium 时，`npm run test:runtime` 无法启动浏览器二进制；这属于测试环境依赖，不是页面失败。当前使用内嵌浏览器完成主流程手动验证，并通过构建、runtime lock 和 Sites Worker 测试。
+- Full-screen module: 393 × 852 — passed.
+- Profile controls and primary CTA — passed.
+- Exactly three catalog-backed course cards — passed.
+- Horizontal carousel drag and favorite state — passed.
+- `换一批`, `重新感应`, and `重新编辑` — passed.
+- Compact card height: 285px — passed.
+- Bottom action buffer: at least 70px — passed.
+- Keyboard-aware city input and semantic button labels remain present.
 
 final result: passed

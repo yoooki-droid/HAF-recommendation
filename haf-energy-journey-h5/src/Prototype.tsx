@@ -1,12 +1,10 @@
 import {
-  BookmarkFilledIcon,
   BookmarkIcon,
-  CheckIcon,
+  CaretDownIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   Cross1Icon,
   LockClosedIcon,
-  ResetIcon,
 } from "@radix-ui/react-icons";
 import { AnimatePresence, motion } from "motion/react";
 import {
@@ -190,7 +188,6 @@ const activeCourses = historicalCourses.filter((course) => (
     Date.parse(`${session.end_at.replace(" ", "T")}+08:00`) > historicalValidationAsOf.getTime()
   ))
 ));
-const isHistoricalCatalog = true;
 const favoriteStorageKey = "haf-journey-favorites:2025-validation-v1";
 const recentCourseStorageKey = "haf-journey-recent-courses:2025-validation-v1";
 const analyticsEndpoint = import.meta.env.VITE_HAF_ANALYTICS_ENDPOINT ?? "http://localhost:4174/api/events";
@@ -971,6 +968,8 @@ function WelcomeScreen() {
 function ProfileScreen() {
   const flow = useFlow();
   const { profile, setProfile, completeOnboarding } = useJourney();
+  const birthTimeOptions = ["06:30", "09:00", "12:00", "18:00", "23:23", "不确定"];
+  const genderOptions = ["女性", "男性", "不设限"];
   const daysInMonth = (year: number, month: number) => new Date(year, month, 0).getDate();
   const adjust = (field: keyof Profile["birth"], amount: number) => {
     const ranges = {
@@ -986,26 +985,50 @@ function ProfileScreen() {
     setProfile({ ...profile, birth });
   };
   const setChoice = (field: "birthTime" | "gender" | "city", value: string) => setProfile({ ...profile, [field]: value });
+  const cycleChoice = (field: "birthTime" | "gender", values: string[]) => {
+    const current = values.indexOf(profile[field]);
+    setChoice(field, values[(current + 1 + values.length) % values.length]);
+  };
+  const genderLabel = profile.gender === "女性" ? "女" : profile.gender === "男性" ? "男" : "不设限";
 
   return (
     <EmbeddedScreen className="profile-host">
       <div className="profile-screen" data-testid="profile-screen">
-        <header><small>只需要一次</small><h1>让今天先认识你</h1><p>年龄会由生日自动计算，时间不确定也没有关系。</p></header>
-        <section className="birth-picker" aria-label="出生日期">
+        <button className="visual-back" onClick={() => flow.pop()} aria-label="返回">
+          <img src="/assets/haf/visual-refresh/back-chevron.svg" alt="" />
+        </button>
+        <h1>与世界初见的那一天？</h1>
+        <section className="profile-field birth-field" aria-label="出生日期">
+          <button className="profile-field-label" type="button" aria-label="选择出生日期">
+            出生日期 <CaretDownIcon />
+          </button>
+          <div className="profile-date-values">
           {(["year", "month", "day"] as const).map((field) => (
-            <div key={field}>
-              <span>{field === "year" ? "年" : field === "month" ? "月" : "日"}</span>
-              <button onClick={() => adjust(field, 1)} aria-label={`${field}增加`}>＋</button>
+            <button key={field} type="button" onClick={() => adjust(field, 1)} aria-label={`${field}增加`}>
               <strong>{profile.birth[field]}</strong>
-              <button onClick={() => adjust(field, -1)} aria-label={`${field}减少`}>−</button>
-            </div>
+              <span>{field === "year" ? "年" : field === "month" ? "月" : "日"}</span>
+            </button>
           ))}
+          </div>
         </section>
-        <ProfileChoices label="出生时间" values={["清晨", "白天", "夜晚", "不确定"]} selected={profile.birthTime} onSelect={(value) => setChoice("birthTime", value)} />
-        <ProfileChoices label="性别（可选）" values={["女性", "男性", "不设限"]} selected={profile.gender} onSelect={(value) => setChoice("gender", value)} />
-        <section className="profile-choice city-entry">
-          <span>当前城市</span>
+        <section className="profile-field profile-time-field">
+          <button className="profile-field-label" type="button" onClick={() => cycleChoice("birthTime", birthTimeOptions)}>
+            出生时间 <CaretDownIcon />
+          </button>
+          <button className="profile-single-value profile-time-value" type="button" onClick={() => cycleChoice("birthTime", birthTimeOptions)}>
+            {profile.birthTime === "不确定" ? "不确定" : profile.birthTime}
+          </button>
+        </section>
+        <section className="profile-field profile-gender-field">
+          <button className="profile-field-label" type="button" onClick={() => cycleChoice("gender", genderOptions)}>
+            性别 <CaretDownIcon />
+          </button>
+          <button className="profile-single-value" type="button" onClick={() => cycleChoice("gender", genderOptions)}>{genderLabel}</button>
+        </section>
+        <section className="profile-field city-entry">
+          <label className="profile-field-label" htmlFor="profile-city">城市 <CaretDownIcon /></label>
           <KeyboardInput
+            id="profile-city"
             className="city-input"
             value={profile.city}
             onChange={(event) => setChoice("city", event.target.value)}
@@ -1014,18 +1037,9 @@ function ProfileScreen() {
             autoComplete="address-level2"
           />
         </section>
-        <GlowButton onClick={() => { completeOnboarding(); flow.push(makeScreen("compass")); }}>保存并感应此刻</GlowButton>
+        <GlowButton onClick={() => { completeOnboarding(); flow.push(makeScreen("compass")); }}>开启今日探索</GlowButton>
       </div>
     </EmbeddedScreen>
-  );
-}
-
-function ProfileChoices({ label, values, selected, onSelect, compact = false }: { label: string; values: string[]; selected: string; onSelect: (value: string) => void; compact?: boolean }) {
-  return (
-    <section className={`profile-choice ${compact ? "compact" : ""}`}>
-      <span>{label}</span>
-      <div>{values.map((value) => <button key={value} className={selected === value ? "selected" : ""} onClick={() => onSelect(value)}>{selected === value && <CheckIcon />}{value}</button>)}</div>
-    </section>
   );
 }
 
@@ -1121,62 +1135,70 @@ function SynthesisScreen() {
 
 function ResultScreen() {
   const flow = useFlow();
-  const { lifePath, dayNumber, dateKey, point, favorites, toggleFavorite, resetOnboarding } = useJourney();
+  const { lifePath, dayNumber, dateKey, point, favorites, toggleFavorite } = useJourney();
   const insight = useMemo(() => synthesizeEnergy(point, lifePath, dayNumber, dateKey), [point, lifePath, dayNumber, dateKey]);
   const readingCacheKey = energyReadingCacheKey(dateKey, dayNumber, insight);
   const energyReading = loadLocal(readingCacheKey, insight.energySummary);
-  const recentCourseIds = useMemo(() => new Set(loadLocal<string[]>(recentCourseStorageKey, [])), []);
+  const [batch, setBatch] = useState(0);
+  const [recentCourseIds, setRecentCourseIds] = useState(() => new Set(loadLocal<string[]>(recentCourseStorageKey, [])));
   const orderedCourses = useMemo(
-    () => recommendCourses(insight, recentCourseIds, lifePath, dayNumber, dateKey),
-    [insight, recentCourseIds, lifePath, dayNumber, dateKey],
+    () => recommendCourses(insight, recentCourseIds, lifePath, dayNumber, `${dateKey}:batch-${batch}`),
+    [insight, recentCourseIds, lifePath, dayNumber, dateKey, batch],
   );
 
   useEffect(() => {
     window.localStorage.setItem(recentCourseStorageKey, JSON.stringify(orderedCourses.map((course) => course.id)));
   }, [orderedCourses]);
 
+  const refreshCourses = () => {
+    setRecentCourseIds((previous) => new Set([...previous, ...orderedCourses.map((course) => course.id)]));
+    setBatch((value) => value + 1);
+  };
+
   return (
     <EmbeddedScreen className="result-host">
       <div className="result-screen" data-testid="result-screen">
+        <button className="visual-back result-back" onClick={() => flow.pop()} aria-label="返回重新感应">
+          <img src="/assets/haf/visual-refresh/back-chevron.svg" alt="" />
+        </button>
+        <div className="result-top-actions">
+          <button onClick={() => flow.push(makeScreen("profile"))}>重新编辑</button>
+          {favorites.length > 0 && <button onClick={() => flow.push(makeScreen("favorites"))}>已收藏 {favorites.length}</button>}
+        </div>
         <section className="result-insight">
           <div className="result-copy">
             <small>今日能量回响</small>
-            <h1>{insight.compositeTitle}</h1>
-            <p>{insight.compositeLine}</p>
+            <h1>{insight.dailyTheme.display}</h1>
+            <p>{energyReading}</p>
           </div>
-          <div className="energy-orb result-orb"><OrbLayers /></div>
           <div className="energy-facets" aria-label="今日能量的三个线索">
-            <span><small>今日主旋律</small><strong>{insight.dailyTheme.display}</strong><em>灵数 {dayNumber}</em></span>
-            <span><small>此刻入口</small><strong>{insight.direction.horizontal.label}</strong><em>{insight.direction.vertical.label}</em></span>
+            <span><small>今日灵数</small><strong>{dayNumber}</strong><em>{insight.dailyTheme.display}</em></span>
+            <span><small>此刻行动</small><strong>{insight.direction.horizontal.label}</strong><em>{insight.direction.vertical.label}</em></span>
             <span><small>能量落点</small><strong>{insight.primaryChakra.zh}</strong><em>{insight.primaryChakra.themes.slice(0, 2).join(" · ")}</em></span>
           </div>
-          <div className="daily-summary"><p>{energyReading}</p></div>
         </section>
         <section className="recommendations">
-          <div className="recommendation-heading">
-            <div><small>{isHistoricalCatalog ? "2025 体验回溯测试" : "顺着这股能量"}</small><h2>此刻与你契合的体验</h2></div>
-            {favorites.length ? (
-              <button className="favorites-entry" onClick={() => flow.push(makeScreen("favorites"))}>已收藏 {favorites.length}<ChevronRightIcon /></button>
-            ) : <span>向左滑动查看</span>}
-          </div>
+          <h2 className="visually-hidden">此刻与你契合的体验</h2>
           <Carousel className="course-rail" contentClassName="course-track" ariaLabel="此刻与你契合的体验">
             {orderedCourses.map((course) => {
               const saved = favorites.includes(course.id);
               return (
                 <article className="course-card" data-testid="course-card" key={course.id}>
-                  <img src={course.image} alt="" />
-                  <div className="course-copy"><small>{course.dateLabel}</small><h3>{course.title}</h3><p>{course.fit}</p><span>{course.meta}</span></div>
-                  <button className={saved ? "saved" : ""} onClick={() => toggleFavorite(course.id)} aria-label={`${saved ? "取消收藏" : "收藏"}${course.title}`}>
-                    {saved ? <BookmarkFilledIcon /> : <BookmarkIcon />}<span>{saved ? "已收藏" : "收藏"}</span>
+                  <img className="course-visual" src={course.image} alt="" />
+                  <div className="course-shade" aria-hidden="true" />
+                  <small className="course-date-pill">{course.dateLabel}</small>
+                  <button className={`course-heart ${saved ? "saved" : ""}`} onClick={() => toggleFavorite(course.id)} aria-label={`${saved ? "取消收藏" : "收藏"}${course.title}`}>
+                    <img src="/assets/haf/visual-refresh/heart-outline.svg" alt="" />
                   </button>
+                  <div className="course-copy"><span>{course.meta}</span><h3>{course.title}</h3><p>{course.fit}</p></div>
                 </article>
               );
             })}
           </Carousel>
         </section>
         <footer className="result-actions">
-          <GlowButton quiet onClick={() => flow.pop()}><ResetIcon />重新感应</GlowButton>
-          <button className="profile-reset" onClick={() => { resetOnboarding(); flow.replace(makeScreen("welcome")); }}>修改资料</button>
+          <button className="result-refresh" onClick={refreshCourses}>换一批</button>
+          <button className="result-resense" onClick={() => flow.pop()}>重新感应</button>
         </footer>
       </div>
     </EmbeddedScreen>

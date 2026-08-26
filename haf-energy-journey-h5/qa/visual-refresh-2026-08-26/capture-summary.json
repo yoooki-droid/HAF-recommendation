@@ -1,0 +1,40 @@
+{
+  "baseURL": "http://127.0.0.1:4173/",
+  "viewport": {
+    "width": 1400,
+    "height": 1200,
+    "deviceScaleFactor": 1
+  },
+  "deviceScreen": {
+    "x": 503.5,
+    "y": 174,
+    "width": 393,
+    "height": 852
+  },
+  "module": {
+    "x": 806.418701171875,
+    "y": 174,
+    "width": 393,
+    "height": 852
+  },
+  "screenshots": {
+    "profile": "/Users/at_lp007/Documents/HAF_miniapp/haf-energy-journey-h5/qa/visual-refresh-2026-08-26/profile-implementation.png",
+    "result": "/Users/at_lp007/Documents/HAF_miniapp/haf-energy-journey-h5/qa/visual-refresh-2026-08-26/result-implementation.png"
+  },
+  "interactions": {
+    "profileControls": "passed",
+    "primaryCTA": "passed",
+    "carousel": "passed",
+    "favorite": "passed",
+    "refresh": "changed",
+    "reSense": "passed",
+    "editProfile": "passed",
+    "compactCardHeight": 285,
+    "bottomActionBuffer": 90
+  },
+  "consoleErrors": [
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED"
+  ]
+}
