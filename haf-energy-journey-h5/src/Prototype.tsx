@@ -111,6 +111,11 @@ const defaultProfile: Profile = {
   gender: "女性",
   city: "上海",
 };
+const birthTimeOptions = ["早上", "中午", "下午", "晚上", "不确定"];
+
+function normalizeBirthTime(value: string) {
+  return birthTimeOptions.includes(value) ? value : "不确定";
+}
 
 const numberThemes = numberThemesSource.numbers as Record<string, { keywords: string[]; gentle_prompt: string }>;
 const chakraModel = chakraModelSource as typeof chakraModelSource & {
@@ -785,7 +790,10 @@ async function prepareEnergyReading({
 }
 
 function JourneyProvider({ children }: { children: ReactNode }) {
-  const [profile, setProfile] = useState(() => loadLocal("haf-journey-profile", defaultProfile));
+  const [profile, setProfile] = useState(() => {
+    const savedProfile = loadLocal("haf-journey-profile", defaultProfile);
+    return { ...savedProfile, birthTime: normalizeBirthTime(savedProfile.birthTime) };
+  });
   const [onboardingComplete, setOnboardingComplete] = useState(() => loadLocal("haf-journey-onboarded", false));
   const [point, setPoint] = useState<Point>({ x: -0.42, y: -0.24 });
   const [favorites, setFavorites] = useState<string[]>(() => loadLocal(favoriteStorageKey, []));
@@ -987,7 +995,6 @@ function WelcomeScreen() {
 function ProfileScreen() {
   const flow = useFlow();
   const { profile, setProfile, completeOnboarding } = useJourney();
-  const birthTimeOptions = ["06:30", "09:00", "12:00", "18:00", "23:23", "不确定"];
   const genderOptions = ["女性", "男性", "不设限"];
   const daysInMonth = (year: number, month: number) => new Date(year, month, 0).getDate();
   const adjust = (field: keyof Profile["birth"], amount: number) => {
@@ -1035,7 +1042,7 @@ function ProfileScreen() {
             出生时间 <CaretDownIcon />
           </button>
           <button className="profile-single-value profile-time-value" type="button" onClick={() => cycleChoice("birthTime", birthTimeOptions)}>
-            {profile.birthTime === "不确定" ? "不确定" : profile.birthTime}
+            {profile.birthTime}
           </button>
         </section>
         <section className="profile-field profile-gender-field">

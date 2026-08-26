@@ -84,6 +84,16 @@ if (!moduleBox || Math.abs(moduleBox.width - 393) > 1 || Math.abs(moduleBox.heig
 }
 
 await captureJourneyScreen("profile-screen", "profile");
+const birthTimeControl = profileScreen.locator(".profile-time-value");
+if ((await birthTimeControl.textContent())?.trim() !== "不确定") {
+  throw new Error(`Expected legacy exact birth time to migrate to 不确定, got ${await birthTimeControl.textContent()}`);
+}
+for (const expectedTime of ["早上", "中午", "下午", "晚上", "不确定"]) {
+  await birthTimeControl.click();
+  if ((await birthTimeControl.textContent())?.trim() !== expectedTime) {
+    throw new Error(`Expected birth-time interval ${expectedTime}, got ${await birthTimeControl.textContent()}`);
+  }
+}
 
 await page.getByRole("button", { name: "year增加" }).click();
 await page.getByRole("button", { name: "year增加" }).click();
@@ -245,6 +255,7 @@ const summary = {
   interactions: {
     animatedBackground: initialBackgroundTransform !== animatedBackgroundTransform ? "passed" : "failed",
     reducedMotion: reducedAnimationName === "none" ? "passed" : "failed",
+    birthTimeIntervals: "早上 / 中午 / 下午 / 晚上 / 不确定",
     profileControls: "passed",
     primaryCTA: "passed",
     carousel: railScrollLeft > 0 ? "passed" : "failed",

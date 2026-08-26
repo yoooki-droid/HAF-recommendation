@@ -17,6 +17,7 @@
 - Pass 6: compared the same result crop and latest result capture together. Replaced the separate saved text link with a 52px circular bookmark immediately left of a 278 × 52 `换一批` button, then aligned the three facet footers to an identical vertical position.
 - Pass 7: compared both supplied full-screen references with all eight route captures together. Reused the same real red-blue-orange raster as two full-screen atmospheric layers on every route, added low-amplitude 25s/31s breathing motion, and retained contrast overlays where content density requires them. The motion is disabled by `prefers-reduced-motion`.
 - Pass 8: replayed the reported `太阳神经丛` result as a recommendation regression fixture. All five three-course batches stayed inside the seven-course primary-chakra pool, exhausted every matching course before recycling, and never repeated a course from the immediately previous batch. A course tagged only for `海底轮` is no longer eligible in this state.
+- Pass 9: replaced exact birth-clock values with four time-of-day intervals (`早上`, `中午`, `下午`, `晚上`) plus `不确定`. Verified the full cycle and automatic migration of a legacy `23:23` value to `不确定`.
 
 ## Final findings
 
@@ -45,5 +46,6 @@
 - Shared raster background: two instances of `energy-gradient.jpeg` on all eight route states — passed.
 - Background motion transform changes during capture; reduced-motion override present — passed.
 - Keyboard-aware city input and semantic button labels remain present.
+- Birth-time intervals and legacy exact-time migration — passed.
 
 final result: passed

@@ -64,6 +64,7 @@
   "interactions": {
     "animatedBackground": "passed",
     "reducedMotion": "passed",
+    "birthTimeIntervals": "早上 / 中午 / 下午 / 晚上 / 不确定",
     "profileControls": "passed",
     "primaryCTA": "passed",
     "carousel": "passed",
