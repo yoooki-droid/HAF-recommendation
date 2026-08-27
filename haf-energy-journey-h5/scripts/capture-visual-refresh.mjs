@@ -58,21 +58,17 @@ async function captureJourneyScreen(testId, key, targetPage = page) {
 }
 
 await page.goto(baseURL, { waitUntil: "domcontentloaded" });
-const { journeyModule: loadingModule } = await captureJourneyScreen("loading-screen", "loading");
-const primaryFlow = loadingModule.locator(".ambient-flow-primary");
+const deviceScreen = page.getByTestId("device-screen");
+const profileScreen = page.getByTestId("profile-screen");
+await profileScreen.waitFor({ state: "visible" });
+const { journeyModule: profileModule } = await captureJourneyScreen("profile-screen", "profile");
+const primaryFlow = profileModule.locator(".ambient-flow-primary");
 const initialBackgroundTransform = await primaryFlow.evaluate((element) => window.getComputedStyle(element).transform);
 await page.waitForTimeout(450);
 const animatedBackgroundTransform = await primaryFlow.evaluate((element) => window.getComputedStyle(element).transform);
 if (initialBackgroundTransform === animatedBackgroundTransform) {
   throw new Error(`Expected the shared background raster to move subtly, but transform remained ${initialBackgroundTransform}`);
 }
-const { screen: welcomeScreen } = await captureJourneyScreen("welcome-screen", "welcome");
-await welcomeScreen.getByRole("button", { name: "开启今日探索" }).click();
-
-const deviceScreen = page.getByTestId("device-screen");
-const profileScreen = page.getByTestId("profile-screen");
-await profileScreen.waitFor({ state: "visible" });
-const profileModule = profileScreen.locator("xpath=ancestor::section[@data-testid='journey-module']");
 
 const deviceBox = await deviceScreen.boundingBox();
 const moduleBox = await profileModule.boundingBox();
@@ -83,7 +79,6 @@ if (!moduleBox || Math.abs(moduleBox.width - 393) > 1 || Math.abs(moduleBox.heig
   throw new Error(`Expected full-screen HAF module at 393 x 852, got ${moduleBox?.width} x ${moduleBox?.height}`);
 }
 
-await captureJourneyScreen("profile-screen", "profile");
 const birthTimeControl = profileScreen.locator(".profile-time-value");
 if ((await birthTimeControl.textContent())?.trim() !== "不确定") {
   throw new Error(`Expected legacy exact birth time to migrate to 不确定, got ${await birthTimeControl.textContent()}`);
@@ -102,12 +97,15 @@ await page.getByRole("button", { name: "day增加" }).click();
 await profileScreen.getByRole("button", { name: "开启今日探索" }).click();
 const { screen: compassScreen, journeyModule: compassModule } = await captureJourneyScreen("compass-screen", "compass-idle");
 const sensingBackgroundSource = await compassScreen.locator(".sensing-background").getAttribute("src");
-if (sensingBackgroundSource !== "/assets/haf/visual-refresh/intuitive-flow-field-v1.png") {
-  throw new Error(`Expected generated intuitive sensing field, got ${sensingBackgroundSource}`);
+if (sensingBackgroundSource !== "/assets/haf/sensing/intuitive-flow-seedance-2-5-v1.mp4") {
+  throw new Error(`Expected the approved Seedance sensing loop, got ${sensingBackgroundSource}`);
 }
 if (await compassScreen.locator(".compass-map, .axis, .ring, .axis-label").count()) {
   throw new Error("Legacy compass axes or chakra-map markers are still visible");
 }
+const introRetry = compassScreen.getByRole("button", { name: "轻触聆听提示" });
+if (await introRetry.isVisible()) await introRetry.click();
+await page.waitForFunction(() => document.querySelector("[data-testid='compass-screen']")?.getAttribute("data-intro-ready") === "true", undefined, { timeout: 20_000 });
 const sensingZone = compassScreen.locator(".sensing-touch-zone");
 const sensingBox = await sensingZone.boundingBox();
 if (!sensingBox) throw new Error("Full-screen sensing zone did not render");
@@ -115,18 +113,21 @@ await page.mouse.move(sensingBox.x + sensingBox.width * .46, sensingBox.y + sens
 await page.mouse.down();
 await page.mouse.move(sensingBox.x + sensingBox.width * .82, sensingBox.y + sensingBox.height * .70, { steps: 5 });
 await page.waitForTimeout(500);
-const firstPositionWord = (await compassScreen.locator(".sensing-word strong").innerText()).trim();
+const firstPositionWord = await compassScreen.getAttribute("data-word-id");
+if (await compassScreen.locator(".sensing-word strong").count()) {
+  throw new Error("A sensing word became visible before finger release");
+}
 const activeSensingScreenshotPath = path.join(outputDir, "compass-active-implementation.png");
 await compassModule.screenshot({ path: activeSensingScreenshotPath, animations: "allow" });
 screenshots["compass-active"] = activeSensingScreenshotPath;
 await page.waitForTimeout(1_350);
-const stationaryWord = (await compassScreen.locator(".sensing-word strong").innerText()).trim();
+const stationaryWord = await compassScreen.getAttribute("data-word-id");
 if (firstPositionWord !== stationaryWord) {
   throw new Error(`Expected a stationary touch to keep ${firstPositionWord}, but it changed to ${stationaryWord}`);
 }
 await page.mouse.move(sensingBox.x + sensingBox.width * .24, sensingBox.y + sensingBox.height * .32, { steps: 5 });
 await page.waitForTimeout(450);
-const secondPositionWord = (await compassScreen.locator(".sensing-word strong").innerText()).trim();
+const secondPositionWord = await compassScreen.getAttribute("data-word-id");
 if (firstPositionWord === secondPositionWord) {
   throw new Error(`Expected a new field position to reveal another word, but it remained ${firstPositionWord}`);
 }
@@ -281,7 +282,10 @@ await returnPage.addInitScript(() => {
   window.localStorage.setItem("haf-journey-onboarded", JSON.stringify(true));
 });
 await returnPage.goto(baseURL, { waitUntil: "domcontentloaded" });
-await captureJourneyScreen("return-screen", "return", returnPage);
+await returnPage.getByTestId("compass-screen").waitFor({ state: "visible", timeout: 8_000 });
+if (await returnPage.getByTestId("return-screen").count()) {
+  throw new Error("The mini-program-owned returning entry page must not render inside the H5");
+}
 await returnPage.close();
 const reducedContext = await browser.newContext({
   viewport: { width: 393, height: 852 },
@@ -292,8 +296,9 @@ await reducedPage.addInitScript(() => {
   window.localStorage.setItem("haf-journey-onboarded", JSON.stringify(false));
 });
 await reducedPage.goto(baseURL, { waitUntil: "domcontentloaded" });
-await reducedPage.getByTestId("loading-screen").waitFor({ state: "visible" });
-const reducedAnimationName = await reducedPage.locator(".ambient-flow-primary").evaluate((element) => (
+const reducedProfile = reducedPage.getByTestId("profile-screen");
+await reducedProfile.waitFor({ state: "visible" });
+const reducedAnimationName = await reducedProfile.locator("xpath=ancestor::section[@data-testid='journey-module']").locator(".ambient-flow-primary").evaluate((element) => (
   window.getComputedStyle(element).animationName
 ));
 if (reducedAnimationName !== "none") {
@@ -336,6 +341,8 @@ const summary = {
     persistedCourseHistory: persistedCourseHistory.length,
     reSense: "passed",
     editProfile: "passed",
+    firstUserRouting: "profile",
+    returningUserRouting: "compass",
     compactCardHeight: firstCardBox.height,
     roundedCardClipping: cardClipping,
     facetFooterAlignment: facetFooterTops,

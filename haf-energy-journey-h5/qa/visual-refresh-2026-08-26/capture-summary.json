@@ -12,32 +12,21 @@
     "height": 852
   },
   "module": {
-    "x": 896.5,
+    "x": 503.5,
     "y": 174,
     "width": 393,
     "height": 852
   },
   "screenshots": {
-    "loading": "/Users/at_lp007/Documents/HAF_miniapp/haf-energy-journey-h5/qa/visual-refresh-2026-08-26/loading-implementation.png",
-    "welcome": "/Users/at_lp007/Documents/HAF_miniapp/haf-energy-journey-h5/qa/visual-refresh-2026-08-26/welcome-implementation.png",
     "profile": "/Users/at_lp007/Documents/HAF_miniapp/haf-energy-journey-h5/qa/visual-refresh-2026-08-26/profile-implementation.png",
     "compass-idle": "/Users/at_lp007/Documents/HAF_miniapp/haf-energy-journey-h5/qa/visual-refresh-2026-08-26/compass-idle-implementation.png",
     "compass-active": "/Users/at_lp007/Documents/HAF_miniapp/haf-energy-journey-h5/qa/visual-refresh-2026-08-26/compass-active-implementation.png",
     "compass": "/Users/at_lp007/Documents/HAF_miniapp/haf-energy-journey-h5/qa/visual-refresh-2026-08-26/compass-implementation.png",
     "synthesis": "/Users/at_lp007/Documents/HAF_miniapp/haf-energy-journey-h5/qa/visual-refresh-2026-08-26/synthesis-implementation.png",
     "result": "/Users/at_lp007/Documents/HAF_miniapp/haf-energy-journey-h5/qa/visual-refresh-2026-08-26/result-implementation.png",
-    "favorites": "/Users/at_lp007/Documents/HAF_miniapp/haf-energy-journey-h5/qa/visual-refresh-2026-08-26/favorites-implementation.png",
-    "return": "/Users/at_lp007/Documents/HAF_miniapp/haf-energy-journey-h5/qa/visual-refresh-2026-08-26/return-implementation.png"
+    "favorites": "/Users/at_lp007/Documents/HAF_miniapp/haf-energy-journey-h5/qa/visual-refresh-2026-08-26/favorites-implementation.png"
   },
   "sharedBackgrounds": {
-    "loading": [
-      "/assets/haf/visual-refresh/energy-gradient.jpeg",
-      "/assets/haf/visual-refresh/energy-gradient.jpeg"
-    ],
-    "welcome": [
-      "/assets/haf/visual-refresh/energy-gradient.jpeg",
-      "/assets/haf/visual-refresh/energy-gradient.jpeg"
-    ],
     "profile": [
       "/assets/haf/visual-refresh/energy-gradient.jpeg",
       "/assets/haf/visual-refresh/energy-gradient.jpeg"
@@ -61,10 +50,6 @@
     "favorites": [
       "/assets/haf/visual-refresh/energy-gradient.jpeg",
       "/assets/haf/visual-refresh/energy-gradient.jpeg"
-    ],
-    "return": [
-      "/assets/haf/visual-refresh/energy-gradient.jpeg",
-      "/assets/haf/visual-refresh/energy-gradient.jpeg"
     ]
   },
   "interactions": {
@@ -73,10 +58,17 @@
     "birthTimeIntervals": "早上 / 中午 / 下午 / 晚上 / 不确定",
     "profileControls": "passed",
     "primaryCTA": "passed",
-    "sensingBackground": "/assets/haf/visual-refresh/intuitive-flow-field-v1.png",
-    "sensingGesture": "hold-drag-release locked a weighted word",
-    "lockedSensingWord": "力量",
-    "resultCompositeTitle": "力量 · 表达",
+    "sensingBackground": "/assets/haf/sensing/intuitive-flow-seedance-2-5-v1.mp4",
+    "sensingGesture": "position changes reveal words; release locks the selected word and its chakra",
+    "firstPositionWord": "sacral_passion",
+    "stationaryWord": "sacral_passion",
+    "secondPositionWord": "solar_advance",
+    "stationaryWordStable": true,
+    "positionChangeRevealsWord": true,
+    "lockedSensingWord": "推进",
+    "resultDailyTheme": "安定",
+    "distinctMomentAndDailyTheme": true,
+    "resultCompositeTitle": "推进 · 安定",
     "courseReasonUsesLockedWord": true,
     "completionButton": {
       "backgroundColor": "rgba(255, 255, 255, 0.18)",
@@ -93,6 +85,8 @@
     "persistedCourseHistory": 7,
     "reSense": "passed",
     "editProfile": "passed",
+    "firstUserRouting": "profile",
+    "returningUserRouting": "compass",
     "compactCardHeight": 285,
     "roundedCardClipping": {
       "borderRadius": "22px",
@@ -117,9 +111,5 @@
     },
     "bottomActionBuffer": 94
   },
-  "consoleErrors": [
-    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
-    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
-    "Failed to load resource: net::ERR_CONNECTION_REFUSED"
-  ]
+  "consoleErrors": []
 }

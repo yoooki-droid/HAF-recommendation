@@ -4,7 +4,6 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   Cross1Icon,
-  LockClosedIcon,
   SpeakerLoudIcon,
   SpeakerOffIcon,
 } from "@radix-ui/react-icons";
@@ -94,9 +93,8 @@ type CatalogCourse = {
 type JourneyState = {
   profile: Profile;
   setProfile: (profile: Profile) => void;
-  onboardingComplete: boolean;
-  completeOnboarding: () => void;
-  resetOnboarding: () => void;
+  userProfileStatus: "loading" | "missing" | "ready";
+  completeProfile: () => void;
   point: Point;
   setPoint: (point: Point) => void;
   favorites: string[];
@@ -244,9 +242,9 @@ function fadeSensingMusic(session: SensingAudioSession, target: number, duration
   const startedAt = performance.now();
   const initial = session.music.volume;
   const step = (now: number) => {
-    const progress = Math.min(1, (now - startedAt) / durationMs);
+    const progress = Math.max(0, Math.min(1, (now - startedAt) / durationMs));
     const eased = 1 - (1 - progress) ** 3;
-    session.music.volume = initial + (target - initial) * eased;
+    session.music.volume = Math.max(0, Math.min(1, initial + (target - initial) * eased));
     session.musicFadeFrame = progress < 1 ? window.requestAnimationFrame(step) : null;
   };
   session.musicFadeFrame = window.requestAnimationFrame(step);
@@ -340,36 +338,8 @@ function startSensingAudio(dateKey: string) {
 
 const analyticsEndpoint = import.meta.env.VITE_HAF_ANALYTICS_ENDPOINT ?? "http://localhost:4174/api/events";
 const readingEndpoint = import.meta.env.VITE_HAF_READING_ENDPOINT ?? "http://localhost:4174/api/energy-reading";
-const greetingEndpoint = import.meta.env.VITE_HAF_GREETING_ENDPOINT ?? "http://localhost:4174/api/daily-greeting";
 const aiRequestTimeoutMs = 6000;
-const pendingGreetingRequests = new Map<string, Promise<string>>();
 const pendingReadingRequests = new Map<string, Promise<string>>();
-
-const dailyGreetings: Record<number, { theme: string; headline: string; body: string }> = {
-  1: { theme: "新的开始", headline: "今天，有一束新的力量正在靠近。", body: "不必准备得完美，先听听自己想从哪里开始。" },
-  2: { theme: "温柔连接", headline: "今天，给感受多一点被听见的空间。", body: "慢一点，也许你会看见自己真正想靠近的关系。" },
-  3: { theme: "真实表达", headline: "今天，有些感受正在寻找自己的声音。", body: "不急着说得完整，先让它被你自己听见。" },
-  4: { theme: "安定落地", headline: "今天，先让自己回到脚下这一步。", body: "当身体有了支撑，心里的方向会更清楚一些。" },
-  5: { theme: "自在流动", headline: "今天，允许新的可能轻轻松动边界。", body: "不必马上决定，让感受先自由地流过。" },
-  6: { theme: "留给自己", headline: "今天，也把一份温柔留给自己。", body: "在回应外界之前，先听听你真正需要什么。" },
-  7: { theme: "安静照见", headline: "今天，答案可能藏在更安静的地方。", body: "放慢一点，让重要的线索自己浮现。" },
-  8: { theme: "清晰力量", headline: "今天，把能量收回一个清晰的选择。", body: "不必做很多，只需站稳真正重要的那一步。" },
-  9: { theme: "温柔放下", headline: "今天，为已经完成的部分留一点空白。", body: "轻轻放下，新的方向才有空间慢慢出现。" },
-};
-
-const dailyBodyVariants: Record<number, string[]> = {
-  1: ["不必准备得完美，先听听自己想从哪里开始。", "一个很小的决定，也可能替今天打开新的入口。", "先靠近真正想做的事，答案会在第一步之后出现。"],
-  2: ["慢一点，也许你会看见自己真正想靠近的关系。", "温柔不是退让，而是让彼此都拥有真实的位置。", "今天适合先听懂感受，再决定要不要回应。"],
-  3: ["不急着说得完整，先让它被你自己听见。", "真正重要的话，不需要一次说得漂亮。", "先承认自己在意什么，声音会慢慢变得清楚。"],
-  4: ["当身体有了支撑，心里的方向会更清楚一些。", "先整理眼前的一小块空间，也是在整理内心。", "稳定不是停下，而是让力量重新回到脚下。"],
-  5: ["不必马上决定，让感受先自由地流过。", "变化正在松动旧边界，先看看它想带你去哪里。", "今天可以少一点控制，多给偶然留一点位置。"],
-  6: ["在回应外界之前，先听听你真正需要什么。", "照顾自己并不自私，它让你的给予不再透支。", "今天先把一份耐心留给那个容易被忽略的自己。"],
-  7: ["放慢一点，让重要的线索自己浮现。", "不是每个问题都需要立刻回答，安静也在工作。", "当外界的声音变轻，你会更容易认出自己的答案。"],
-  8: ["不必做很多，只需站稳真正重要的那一步。", "把力气收回一个选择，比同时证明所有事更有用。", "清晰的边界，会让真正值得的事情更靠近。"],
-  9: ["轻轻放下，新的方向才有空间慢慢出现。", "有些结束不是失去，而是提醒你已经走完这一段。", "今天不必抓紧答案，先为下一次开始腾出位置。"],
-};
-
-const dailyAngles = ["行动", "关系", "身体", "边界", "情绪", "休息"];
 
 const momentReadings: Record<string, string[]> = {
   inward_calm: [
@@ -783,10 +753,6 @@ function delay(milliseconds: number) {
   return new Promise<void>((resolve) => window.setTimeout(resolve, milliseconds));
 }
 
-function dailyGreetingCacheKey(dateKey: string, dayNumber: number, lifePath: number) {
-  return `haf-daily-ai-greeting:v2:${dateKey}:${dayNumber}:${lifePath}`;
-}
-
 function energyReadingCacheKey(dateKey: string, dayNumber: number, insight: EnergyInsight) {
   return `haf-energy-reading:v6:${dateKey}:${dayNumber}:${insight.selectedWord.id}:${insight.primaryChakra.id}:${insight.secondaryChakra.id}`;
 }
@@ -806,57 +772,6 @@ async function requestJson<T>(endpoint: string, payload: Record<string, unknown>
     return null;
   } finally {
     window.clearTimeout(timer);
-  }
-}
-
-async function prepareDailyGreeting({
-  dateKey,
-  dayNumber,
-  lifePath,
-}: {
-  dateKey: string;
-  dayNumber: number;
-  lifePath: number;
-}) {
-  const dailyTheme = dailyGreetings[dayNumber] ?? dailyGreetings[1];
-  const fallback = dailyTheme.headline;
-  const cacheKey = dailyGreetingCacheKey(dateKey, dayNumber, lifePath);
-  const cached = loadLocal<string | null>(cacheKey, null);
-  if (cached) return cached;
-  const pending = pendingGreetingRequests.get(cacheKey);
-  if (pending) return pending;
-
-  const task = (async () => {
-    const dailyAngle = chooseStable(dailyAngles, `${dateKey}:${getAnalyticsUserId()}:angle`);
-    const historyKey = "haf-daily-greeting-history";
-    const history = loadLocal<Array<{ date: string; greeting: string }>>(historyKey, []);
-    const data = await requestJson<{ greeting?: string }>(greetingEndpoint, {
-      user_key: getAnalyticsUserId(),
-      date_key: dateKey,
-      personal_day_number: dayNumber,
-      personal_day_theme: dailyTheme.theme,
-      life_path_number: lifePath,
-      daily_angle: dailyAngle,
-      recent_greetings: history.slice(-30).map((item) => item.greeting),
-    });
-    const candidate = data?.greeting?.trim();
-    const candidateLength = Array.from(candidate ?? "").length;
-    const resolved = candidate && candidateLength >= 14 && candidateLength <= 30 ? candidate : fallback;
-
-    // Cache both AI and fallback copy. A failed or timed-out request must not retry
-    // after the user has already entered the experience.
-    window.localStorage.setItem(cacheKey, JSON.stringify(resolved));
-    if (candidate && resolved === candidate) {
-      const nextHistory = [...history.filter((item) => item.date !== dateKey), { date: dateKey, greeting: candidate }].slice(-30);
-      window.localStorage.setItem(historyKey, JSON.stringify(nextHistory));
-    }
-    return resolved;
-  })();
-  pendingGreetingRequests.set(cacheKey, task);
-  try {
-    return await task;
-  } finally {
-    if (pendingGreetingRequests.get(cacheKey) === task) pendingGreetingRequests.delete(cacheKey);
   }
 }
 
@@ -915,7 +830,7 @@ function JourneyProvider({ children }: { children: ReactNode }) {
     const savedProfile = loadLocal("haf-journey-profile", defaultProfile);
     return { ...savedProfile, birthTime: normalizeBirthTime(savedProfile.birthTime) };
   });
-  const [onboardingComplete, setOnboardingComplete] = useState(() => loadLocal("haf-journey-onboarded", false));
+  const [userProfileStatus, setUserProfileStatus] = useState<JourneyState["userProfileStatus"]>("loading");
   const [point, setPoint] = useState<Point>({ x: -0.42, y: -0.24 });
   const [favorites, setFavorites] = useState<string[]>(() => loadLocal(favoriteStorageKey, []));
   const moduleViewTracked = useRef(false);
@@ -924,7 +839,15 @@ function JourneyProvider({ children }: { children: ReactNode }) {
   const numerology = useMemo(() => calculateNumerology(profile.birth, today), [profile.birth, today]);
 
   useEffect(() => window.localStorage.setItem("haf-journey-profile", JSON.stringify(profile)), [profile]);
-  useEffect(() => window.localStorage.setItem("haf-journey-onboarded", JSON.stringify(onboardingComplete)), [onboardingComplete]);
+  useEffect(() => {
+    let active = true;
+    // Temporary local adapter. Tomorrow's mini-program user-info API should be
+    // mapped here; the LoadingScreen routing contract can remain unchanged.
+    void Promise.resolve(loadLocal("haf-journey-onboarded", false)).then((hasProfile) => {
+      if (active) setUserProfileStatus(hasProfile ? "ready" : "missing");
+    });
+    return () => { active = false; };
+  }, []);
   useEffect(() => window.localStorage.setItem(favoriteStorageKey, JSON.stringify(favorites)), [favorites]);
   useEffect(() => {
     if (moduleViewTracked.current) return;
@@ -936,9 +859,11 @@ function JourneyProvider({ children }: { children: ReactNode }) {
     <JourneyContext.Provider value={{
       profile,
       setProfile,
-      onboardingComplete,
-      completeOnboarding: () => setOnboardingComplete(true),
-      resetOnboarding: () => setOnboardingComplete(false),
+      userProfileStatus,
+      completeProfile: () => {
+        window.localStorage.setItem("haf-journey-onboarded", JSON.stringify(true));
+        setUserProfileStatus("ready");
+      },
       point,
       setPoint,
       favorites,
@@ -1030,17 +955,14 @@ function GlowButton({ children, onClick, quiet = false }: { children: ReactNode;
 
 function LoadingScreen() {
   const flow = useFlow();
-  const { onboardingComplete, dateKey, dayNumber, lifePath } = useJourney();
+  const { userProfileStatus, dateKey } = useJourney();
+  const routed = useRef(false);
   useEffect(() => {
-    let active = true;
-    const contentReady = onboardingComplete
-      ? prepareDailyGreeting({ dateKey, dayNumber, lifePath })
-      : Promise.resolve();
-    void Promise.all([delay(1650), contentReady]).then(() => {
-      if (active) flow.replace(makeScreen(onboardingComplete ? "return" : "welcome"));
-    });
-    return () => { active = false; };
-  }, [dateKey, dayNumber, flow, lifePath, onboardingComplete]);
+    if (userProfileStatus === "loading" || routed.current) return;
+    routed.current = true;
+    if (userProfileStatus === "ready") startSensingAudio(dateKey);
+    flow.replace(makeScreen(userProfileStatus === "ready" ? "compass" : "profile"));
+  }, [dateKey, flow, userProfileStatus]);
 
   return (
     <EmbeddedScreen className="loading-host">
@@ -1050,64 +972,8 @@ function LoadingScreen() {
           animate={{ scale: [0.86, 1.05, 0.92], rotate: [0, 8, -4, 0] }}
           transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
         ><OrbLayers /></motion.div>
-        <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.35 }}>正在听见今天的能量</motion.span>
+        <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>正在准备今日感应</motion.span>
         <i><b /></i>
-      </div>
-    </EmbeddedScreen>
-  );
-}
-
-function ReturnGreetingScreen() {
-  const flow = useFlow();
-  const { dayNumber, dateKey, lifePath, profile } = useJourney();
-  const todayLabel = useMemo(() => new Intl.DateTimeFormat("zh-CN", { month: "long", day: "numeric", weekday: "long" }).format(new Date()), []);
-  const greeting = dailyGreetings[dayNumber] ?? dailyGreetings[1];
-  const dailyBody = chooseStable(dailyBodyVariants[dayNumber] ?? dailyBodyVariants[1], `${dateKey}:${profile.birth.year}-${profile.birth.month}-${profile.birth.day}`);
-  const dailyGreeting = loadLocal(dailyGreetingCacheKey(dateKey, dayNumber, lifePath), greeting.headline);
-
-  return (
-    <EmbeddedScreen className="return-host">
-      <div className="return-screen" data-testid="return-screen">
-        <motion.div
-          className="return-greeting"
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.18, duration: 0.75, ease: "easeOut" }}
-        >
-          <span>{todayLabel}</span>
-          <strong>{dailyGreeting}</strong>
-          <i aria-hidden="true" />
-          <p>{dailyBody}</p>
-        </motion.div>
-        <div className="return-action">
-          <GlowButton onClick={() => { startSensingAudio(dateKey); flow.replace(makeScreen("compass")); }}>开始今日感应</GlowButton>
-          <p className="return-note">每一次靠近自己，都是新的开始。</p>
-        </div>
-      </div>
-    </EmbeddedScreen>
-  );
-}
-
-function WelcomeScreen() {
-  const flow = useFlow();
-  return (
-    <EmbeddedScreen className="welcome-host">
-      <div className="welcome-screen" data-testid="welcome-screen">
-        <div className="welcome-copy">
-          <small>一次属于你的能量觉察</small>
-          <h1>此刻的你，<br />正适合靠近哪一种能量？</h1>
-          <p>我们会把你与生俱来的数字线索、今天的宇宙节律，与手指停下的位置放在一起，陪你照见此刻最值得留意的方向。</p>
-        </div>
-        <div className="welcome-path" aria-label="探索过程">
-          <span><em>01</em><strong>天生线索</strong><small>由生日生成</small></span>
-          <i aria-hidden="true" />
-          <span><em>02</em><strong>此刻感应</strong><small>让手指停下</small></span>
-          <i aria-hidden="true" />
-          <span><em>03</em><strong>今日回响</strong><small>看见方向</small></span>
-        </div>
-        <p className="welcome-outcome">你将获得：今日关键词 · 能量解读 · 与你契合的体验</p>
-        <div className="privacy-note"><LockClosedIcon /><span>出生资料只用于生成你的能量线索，可随时修改或清除。</span></div>
-        <GlowButton onClick={() => flow.push(makeScreen("profile"))}>开启今日探索</GlowButton>
       </div>
     </EmbeddedScreen>
   );
@@ -1115,7 +981,7 @@ function WelcomeScreen() {
 
 function ProfileScreen() {
   const flow = useFlow();
-  const { profile, setProfile, completeOnboarding, dateKey } = useJourney();
+  const { profile, setProfile, completeProfile, dateKey } = useJourney();
   const genderOptions = ["女性", "男性", "不设限"];
   const daysInMonth = (year: number, month: number) => new Date(year, month, 0).getDate();
   const adjust = (field: keyof Profile["birth"], amount: number) => {
@@ -1184,7 +1050,7 @@ function ProfileScreen() {
             autoComplete="address-level2"
           />
         </section>
-        <GlowButton onClick={() => { completeOnboarding(); startSensingAudio(dateKey); flow.push(makeScreen("compass")); }}>开启今日探索</GlowButton>
+        <GlowButton onClick={() => { completeProfile(); startSensingAudio(dateKey); flow.push(makeScreen("compass")); }}>开启今日探索</GlowButton>
       </div>
     </EmbeddedScreen>
   );
@@ -1751,14 +1617,12 @@ function FavoritesScreen() {
   );
 }
 
-type ScreenId = "loading" | "welcome" | "profile" | "return" | "compass" | "synthesis" | "result" | "favorites";
+type ScreenId = "loading" | "profile" | "compass" | "synthesis" | "result" | "favorites";
 
 function makeScreen(id: ScreenId): FlowScreen {
   const screens: Record<typeof id, () => ReactNode> = {
     loading: () => <LoadingScreen />,
-    welcome: () => <WelcomeScreen />,
     profile: () => <ProfileScreen />,
-    return: () => <ReturnGreetingScreen />,
     compass: () => <CompassScreen />,
     synthesis: () => <SynthesisScreen />,
     result: () => <ResultScreen />,
