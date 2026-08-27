@@ -1,11 +1,11 @@
 # Design QA
 
-- Source visual truth: `/Users/at_lp007/Documents/HAF_miniapp/ref/iPhone 16 - 5.png`, `/Users/at_lp007/Documents/HAF_miniapp/ref/iPhone 16 - 6.png`, `/Users/at_lp007/Documents/HAF_miniapp/ref/result-card-compact-ios-buffer.png`, `/Users/at_lp007/Documents/HAF_miniapp/ref/result-saved-spacing-rounded-card.png`, and Figma Octave node `10578:5067`.
+- Source visual truth: `/Users/at_lp007/Documents/HAF_miniapp/ref/iPhone 16 - 5.png`, `/Users/at_lp007/Documents/HAF_miniapp/ref/iPhone 16 - 6.png`, `/Users/at_lp007/Documents/HAF_miniapp/ref/result-card-compact-ios-buffer.png`, `/Users/at_lp007/Documents/HAF_miniapp/ref/result-saved-spacing-rounded-card.png`, Figma Octave node `10578:5067`, and the accepted sensing baseline `qa/word-resonance-v4-2026-08-27/01-position-selected-word.png`.
 - Implementation: local HAF mobile prototype at `http://127.0.0.1:4173/`.
 - Intended viewport: full-screen app-owned 393 × 852 mobile view inside the protected iPhone runtime. Backgrounds paint behind the status bar and home indicator; readable controls keep safe-area clearance.
 - Source pixels: primary screen references 786 × 1704; focused result references 718 × 536 and 760 × 690; Figma export 786 × 1704.
 - Implementation screenshots: `qa/visual-refresh-2026-08-26/loading-implementation.png`, `welcome-implementation.png`, `profile-implementation.png`, `return-implementation.png`, `compass-implementation.png`, `synthesis-implementation.png`, `result-implementation.png`, and `favorites-implementation.png`, each 393 × 852 CSS pixels at device scale factor 1.
-- State: the complete first-time journey, returning-user greeting, result actions, and saved-experiences route captured after the full-screen, compact-card, and shared-atmosphere revisions.
+- State: the complete first-time journey, returning-user greeting, sensing-word emergence and locked state, result actions, and saved-experiences route captured after the full-screen, compact-card, shared-atmosphere, and word-resonance revisions.
 
 ## Comparison passes
 
@@ -18,6 +18,7 @@
 - Pass 7: compared both supplied full-screen references with all eight route captures together. Reused the same real red-blue-orange raster as two full-screen atmospheric layers on every route, added low-amplitude 25s/31s breathing motion, and retained contrast overlays where content density requires them. The motion is disabled by `prefers-reduced-motion`.
 - Pass 8: replayed the reported `太阳神经丛` result as a recommendation regression fixture. All five three-course batches stayed inside the seven-course primary-chakra pool, exhausted every matching course before recycling, and never repeated a course from the immediately previous batch. A course tagged only for `海底轮` is no longer eligible in this state.
 - Pass 9: replaced exact birth-clock values with four time-of-day intervals (`早上`, `中午`, `下午`, `晚上`) plus `不确定`. Verified the full cycle and automatic migration of a legacy `23:23` value to `不确定`.
+- Pass 10: compared the accepted sensing baseline and the revised in-app Browser capture `qa/word-resonance-v4-2026-08-27/02-slow-word-emergence.png` together. The settled composition, typography, background, orb, and lower copy remain unchanged. Live computed-style sampling confirmed the selected word progresses from partial opacity/blur/scale to fully resolved over roughly 1.1 seconds; outgoing words clear in 0.24 seconds without a waiting queue, and `完成感应` now waits for the word to resolve. The browser captures are both 594 × 757 pixels at the same in-app Browser canvas size; the previously approved 393 × 852 app-viewport captures remain the 1:1 layout evidence. No focused still-image crop was needed because this pass changed only temporal easing, and the full-view comparison kept the complete affected region legible.
 
 ## Final findings
 
@@ -25,6 +26,7 @@
 - Profile: title, date/time/gender/city groups, back affordance, and primary CTA align to the supplied vertical rhythm. The full-bleed raster continues beneath the protected status and home-indicator chrome.
 - Result: energy hierarchy, three glass facets, horizontal three-card rail, actions, and bottom safety buffer are complete. The card image uses the real selected course catalog cover rather than the static Figma demonstration photo; this is an intentional product-data constraint.
 - Journey atmosphere: loading, welcome, profile, returning greeting, compass, synthesis, result, and favorites all render the same raster source without a hard rectangular boundary. The light field drifts and scales subtly rather than behaving like a looping decorative effect.
+- Sensing word: the brief pause, softened 13px blur, slight scale/letter-spacing convergence, and 1.1-second reveal produce a restrained arrival without changing the accepted layout. Rapid position changes replace the pending word instead of queuing older words; reduced-motion users receive an immediate fade and action.
 - Focused card region: metadata, title, and fit reason remain readable over the new soft-focus lower-image treatment; the haze has no hard asset boundary and stays clipped by the real card image.
 - The protected runtime overlays live iOS status chrome and the home indicator, while the source PNGs omit those system elements. This is an intentional runtime difference, not an app-owned blank band.
 - Three `ERR_CONNECTION_REFUSED` messages remain in the isolated visual capture because the optional local analytics/AI service on port 4174 was not running. Deterministic fallbacks completed the journey and all visible interactions; the errors do not affect layout or behavior.
@@ -47,5 +49,7 @@
 - Background motion transform changes during capture; reduced-motion override present — passed.
 - Keyboard-aware city input and semantic button labels remain present.
 - Birth-time intervals and legacy exact-time migration — passed.
+- Sensing word reveal: sampled at 0.39 opacity / 6.69px blur during emergence and 1 opacity / 0px blur after settling — passed.
+- Locked action reveal waits 1.25 seconds so it follows the word instead of interrupting it — passed.
 
 final result: passed

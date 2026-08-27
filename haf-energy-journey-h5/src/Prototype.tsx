@@ -6,7 +6,7 @@ import {
   Cross1Icon,
   LockClosedIcon,
 } from "@radix-ui/react-icons";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   createContext,
   useContext,
@@ -1184,6 +1184,7 @@ function SensingRippleCanvas({ cursor, active }: { cursor: SensingCursor; active
 
 function CompassScreen() {
   const flow = useFlow();
+  const prefersReducedMotion = useReducedMotion();
   const { point, setPoint, lifePath, dayNumber, dateKey } = useJourney();
   const initialInsight = useMemo(() => synthesizeEnergy(point, lifePath, dayNumber, dateKey), [dateKey, dayNumber, lifePath, point]);
   const [phase, setPhase] = useState<"idle" | "sensing" | "locked">("idle");
@@ -1259,9 +1260,9 @@ function CompassScreen() {
       setReadyToComplete(false);
       return undefined;
     }
-    const timer = window.setTimeout(() => setReadyToComplete(true), 650);
+    const timer = window.setTimeout(() => setReadyToComplete(true), prefersReducedMotion ? 80 : 1250);
     return () => window.clearTimeout(timer);
-  }, [phase]);
+  }, [phase, prefersReducedMotion]);
 
   const beginSensing = (event: ReactPointerEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -1332,9 +1333,23 @@ function CompassScreen() {
         </div>
         <section className="sensing-word" aria-live="polite">
           <motion.small layout>{phase === "locked" ? "你停在这个词上——" : phase === "sensing" ? "这里浮现" : "触碰一个位置"}</motion.small>
-          <AnimatePresence mode="wait">
+          <AnimatePresence mode="popLayout">
             {phase !== "idle" && (
-              <motion.strong key={currentWord} initial={{ opacity: 0, y: 9, filter: "blur(7px)" }} animate={{ opacity: 1, y: 0, filter: "blur(0px)" }} exit={{ opacity: 0, y: -7, filter: "blur(6px)" }} transition={{ duration: .58, ease: "easeOut" }}>
+              <motion.strong
+                key={currentWord}
+                initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 10, scale: .94, filter: "blur(13px)", letterSpacing: ".13em" }}
+                animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)", letterSpacing: ".06em" }}
+                exit={prefersReducedMotion
+                  ? { opacity: 0, transition: { duration: .01 } }
+                  : { opacity: 0, y: -4, scale: 1.015, filter: "blur(8px)", transition: { duration: .24, ease: [.4, 0, 1, 1] } }}
+                transition={prefersReducedMotion ? { duration: .01 } : {
+                  opacity: { duration: 1.05, delay: .14, ease: [.22, 1, .36, 1] },
+                  y: { duration: 1.15, delay: .08, ease: [.22, 1, .36, 1] },
+                  scale: { duration: 1.18, delay: .08, ease: [.22, 1, .36, 1] },
+                  filter: { duration: 1.12, delay: .1, ease: [.22, 1, .36, 1] },
+                  letterSpacing: { duration: 1.18, delay: .08, ease: [.22, 1, .36, 1] },
+                }}
+              >
                 {currentWord}
               </motion.strong>
             )}
