@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-27T08:19:56Z",
+  "generated_at": "2026-08-27T08:31:22Z",
   "status": "review_candidate",
   "results": [
     {
@@ -30,8 +30,11 @@
       "title": "HAF · 指尖能量流",
       "source_song_id": "00407e83-b00b-4c32-8a83-ee42a7ed7aac",
       "duration_seconds": 198.456,
-      "output": "public/assets/haf/sensing/haf-fingertip-energy-flow-suno-v1.mp3",
-      "output_sha256": "afef540e9f6082b5ac4398ef2036243df4d11cf1e88c30479fd12080ad4dc2ec"
+      "source_output": "qa/sensing-generated-media-v1/source/haf-fingertip-energy-flow-suno-v1.mp3",
+      "source_output_sha256": "afef540e9f6082b5ac4398ef2036243df4d11cf1e88c30479fd12080ad4dc2ec",
+      "mobile_codec": "AAC-LC 64kbps",
+      "output": "public/assets/haf/sensing/haf-fingertip-energy-flow-suno-mobile-v1.m4a",
+      "output_sha256": "7078393e00070b707717192c179c4f79ffa990028776b05cc2a8e50666f31ae0"
     }
   ]
 }

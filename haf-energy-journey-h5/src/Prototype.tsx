@@ -1369,8 +1369,8 @@ function CompassScreen() {
         <audio
           ref={musicAudioRef}
           className="sensing-music-audio"
-          src="/assets/haf/sensing/haf-fingertip-energy-flow-suno-v1.mp3"
-          preload="auto"
+          src="/assets/haf/sensing/haf-fingertip-energy-flow-suno-mobile-v1.m4a"
+          preload="none"
           loop
           aria-hidden="true"
         />
