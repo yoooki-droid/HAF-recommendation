@@ -25,10 +25,10 @@ python3 scripts/synthesize_daily_energy.py \
 
 ## Rules
 
-- Weight Personal Day, Life Path, primary chakra, secondary chakra, and all four compass poles according to the versioned synthesis model.
-- Collapse semantically aligned signals into the same keyword family before ranking. This makes a keyword reflect agreement between systems instead of letting one input dominate invisibly.
-- Reserve the Personal Day keyword for `今日主旋律`; the locked `moment_keyword` must be the highest-ranked different family so sensing always adds a second signal instead of repeating the numerology label.
-- Use the four-pole values continuously; do not infer from a hard quadrant alone.
+- Preserve the exact word the user locked on release as the visible `moment_keyword`.
+- Use the word's declared `keyword_id` only as a catalog/recommendation bridge; never replace the visible word with the canonical family label.
+- Keep Personal Day as the separate `今日主旋律`. The 70-word sensing bank excludes all canonical daily-theme display words, so the two visible terms cannot duplicate.
+- Preserve the selected word's chakra as primary; numerology may affect only the supporting chakra and copy tone.
 - Keep numerology visually secondary to the keyword and summary.
 - Never output “blocked,” “damaged,” “diagnosed,” “healed,” or deterministic future language.
 - Never call an external model in the deterministic baseline.
@@ -47,10 +47,9 @@ Required fields:
 - `schema_version`, `synthesis_version`, and `upstream_versions`
 - `keyword`, `keyword_candidates`, and `keyword_trace`
 - `daily_theme`, `moment_keyword`, `composite_title`, and `composite_line`
-- `selection_policy` set to `moment_excludes_daily_theme`
+- `selection_policy` set to `user_selected_chakra_word`
 - `visible_meta`
 - `energy_summary`, `chakra_summary`, and `reflection_prompt`
-- `primary_chakra`, `secondary_chakra`, and `direction`
-- `source_compass` with all four continuous pole values for downstream recommendation
+- `primary_chakra`, `secondary_chakra`, and `resonance`
 - `evidence_ids` and `llm_payload`
 - `disclaimer`

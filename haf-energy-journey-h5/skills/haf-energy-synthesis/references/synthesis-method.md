@@ -7,62 +7,36 @@ This Skill turns already-calculated symbolic signals into a coherent, restrained
 ## Required upstream data
 
 - `$haf-numerology`: Life Path, Personal Day, symbolic number themes, and version IDs.
-- `$haf-chakra-energy`: four compass weights, seven relative chakra scores, primary/secondary chakras, evidence IDs, and model version.
+- `$haf-chakra-energy`: locked sensing word, hidden field cell, seven relative chakra scores, primary/secondary chakras, evidence IDs, and model version.
 
 Reject input when the Life Path or Personal Day embedded in the chakra result differs from the numerology result. Never silently blend records from different users or dates.
 
-## Keyword scoring v3
+## User-selected word synthesis v4
 
-Each input is mapped to a semantic keyword family:
+The sensing surface is a deterministic hidden 7 × 10 field. Every cell contains one unique word, and each of the seven chakra families owns exactly ten words. Position has no inward/outward/calm/active semantics. It only addresses a word.
 
-```text
-Personal Day     12%
-Life Path         5%
-Primary chakra   22%
-Secondary chakra  6%
-Compass position 55%
-```
-
-Numerology provides the day's symbolic background. The headline describes the present moment, so the compass position and compass-influenced chakra projection together carry more weight.
-
-The compass contribution uses a continuous 3 × 3 semantic grid. For the horizontal axis, compute `inward=max(0,-x)`, `center=1-abs(x)`, and `outward=max(0,x)`. Compute `calm`, `center`, and `active` the same way on the vertical axis. Multiply the horizontal and vertical memberships, sharpen them with the configured response power, normalize, then add the configured compass weight to the mapped keyword families.
-
-This produces gentle transitions instead of hard quadrant switches:
+The moment signal is direct:
 
 ```text
-照见    整合    表达
-关照    整合    连接
-安定    流动    力量
+final released position → selected word → primary chakra
 ```
 
-Signals that map to the same family add together. For example:
+The selected word contributes 70% of the relative chakra projection, Life Path 20%, and Personal Day 10%. This guarantees that the chakra displayed on the result page agrees with what the user chose; numerology supplies only a supporting chakra and tone modifier.
 
-```text
-Personal Day 9       → release
-Crown chakra         → release
-Inward + calm        → insight
-Outward + active     → strength
-Near the center      → integrate
-```
+Every word declares a canonical `keyword_id` for catalog matching, but the canonical family label never replaces the visible word. For example, `勇气` may bridge to the `strength` course tag while the interface and result continue to say `勇气`.
 
-Aligned numerology and chakra signals still influence the ranking, but Personal Day alone can no longer keep the headline fixed while the user moves across the compass. The ranked trace preserves the background and present-moment contributions separately.
+Personal Day remains the separate `今日主旋律`. The 70 sensing words exclude the ten canonical daily-theme display words, so the composite title is always a non-duplicated `{selected_word} · {daily_theme}` pair without rejecting a semantically related choice.
 
-### Distinct moment selection
-
-The Personal Day keyword is reserved for `今日主旋律`. After scoring, exclude that one keyword family from the `moment_keyword` candidate list and choose the strongest remaining family. This guarantees that sensing adds a second piece of information instead of echoing the known daily theme. Preserve the excluded family's score and trace for auditability, but do not show it as a sensing-process word or locked moment word.
-
-The result composite title is always `{moment_keyword} · {daily_theme}`. Course recommendation receives the distinct locked moment keyword plus the daily theme as separate evidence fields.
-
-Sort by total score descending, then stable keyword ID ascending. Preserve every contribution in `keyword_trace` so product and content teams can understand the choice.
+`keyword_candidates` begins with the selected word's canonical bridge, then adds distinct primary-chakra, secondary-chakra, and Life Path families. Preserve these sources in `keyword_trace` so recommendation evidence remains auditable.
 
 ## Copy construction
 
 Use four pieces only:
 
-1. The dominant horizontal pole and dominant vertical pole.
+1. The exact word the user selected.
 2. The Personal Day as a quiet “today's numeric rhythm,” not the headline.
-3. The primary and secondary chakra names.
-4. The chosen keyword's short guidance and reflection question.
+3. The selected word's primary chakra and numerology-supported secondary chakra.
+4. The selected word's canonical family's short guidance and reflection question.
 
 Keep the result warm, short, and non-diagnostic. A valid summary describes a possibility and offers a gentle next step; it does not define the user.
 

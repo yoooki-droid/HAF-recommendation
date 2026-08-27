@@ -19,7 +19,7 @@ import {
 } from "react";
 import { Carousel, FlowStack, KeyboardInput, MobileScroll, useFlow, type FlowScreen } from "./mobile";
 import numberThemesSource from "../skills/haf-numerology/references/number-themes.json";
-import chakraModelSource from "../skills/haf-chakra-energy/references/chakra-model.json";
+import chakraWordModelSource from "../skills/haf-chakra-energy/references/chakra-word-model.json";
 import synthesisModelSource from "../skills/haf-energy-synthesis/references/synthesis-model.json";
 import historicalCatalogSource from "../qa/course-recall-2025/catalog-normalized.json";
 
@@ -47,18 +47,19 @@ type ChakraReading = {
   themes: string[];
   score: number;
 };
+type SensingWord = { id: string; display: string; keyword_id: KeywordId };
 type EnergyInsight = {
   dailyThemeId: KeywordId;
   dailyTheme: { display: string; guidance: string; reflection_prompt: string };
   keywordId: KeywordId;
   keyword: { display: string; guidance: string; reflection_prompt: string };
   keywordCandidates: KeywordId[];
+  selectedWord: SensingWord;
   primaryChakra: ChakraReading;
   secondaryChakra: ChakraReading;
-  poles: Record<EnergyPole, number>;
-  direction: {
-    horizontal: { id: EnergyPole; label: string };
-    vertical: { id: EnergyPole; label: string };
+  resonance: {
+    cell: { column: number; row: number };
+    chakraId: ChakraId;
   };
   intensity: { id: "soft" | "clear" | "strong"; label: string };
   compositeTitle: string;
@@ -118,17 +119,19 @@ function normalizeBirthTime(value: string) {
 }
 
 const numberThemes = numberThemesSource.numbers as Record<string, { keywords: string[]; gentle_prompt: string }>;
-const chakraModel = chakraModelSource as typeof chakraModelSource & {
-  chakras: Record<ChakraId, { zh: string; anchor: Point; themes: string[] }>;
+const chakraWordModel = chakraWordModelSource as unknown as {
+  model_version: string;
+  field_version: string;
+  field: { columns: number; rows: number; chakra_stride: number; row_stride: number };
+  weights: { selected_word: number; life_path: number; personal_day: number };
+  score: { floor: number; span: number };
+  chakra_order: ChakraId[];
+  chakras: Record<ChakraId, { zh: string; themes: string[]; words: SensingWord[] }>;
   number_affinity: Record<string, Record<ChakraId, number>>;
 };
 const synthesisModel = synthesisModelSource as typeof synthesisModelSource & {
   number_keyword: Record<string, KeywordId>;
   chakra_keyword: Record<ChakraId, KeywordId>;
-  compass_keyword: Record<EnergyPole, KeywordId>;
-  compass_grid_keyword: Record<string, KeywordId>;
-  compass_response_power: number;
-  compass_labels: Record<EnergyPole, string>;
   keywords: Record<KeywordId, { display: string; guidance: string; reflection_prompt: string }>;
 };
 const numberToKeyword: Record<number, KeywordId> = {
@@ -371,101 +374,82 @@ function calculateNumerology(birth: Profile["birth"], today: Date) {
   return { lifePath, personalDay };
 }
 
+function sensingWordForPoint(point: Point) {
+  const columns = chakraWordModel.field.columns;
+  const rows = chakraWordModel.field.rows;
+  const column = Math.min(columns - 1, Math.max(0, Math.floor(((point.x + 1) / 2) * columns)));
+  const row = Math.min(rows - 1, Math.max(0, Math.floor(((point.y + 1) / 2) * rows)));
+  const chakraIndex = (column * chakraWordModel.field.chakra_stride + row * chakraWordModel.field.row_stride) % chakraWordModel.chakra_order.length;
+  const chakraId = chakraWordModel.chakra_order[chakraIndex];
+  return { column, row, chakraId, word: chakraWordModel.chakras[chakraId].words[row] };
+}
+
 function projectChakras(point: Point, lifePath: number, personalDay: number) {
-  const poles: Record<EnergyPole, number> = {
-    inward: (1 - point.x) / 2,
-    outward: (1 + point.x) / 2,
-    calm: (1 - point.y) / 2,
-    active: (1 + point.y) / 2,
-  };
-  const lifeAffinity = chakraModel.number_affinity[String(lifePath)] ?? chakraModel.number_affinity[String(reduceNumber(lifePath))];
-  const dayAffinity = chakraModel.number_affinity[String(personalDay)];
-  const chakras = (Object.keys(chakraModel.chakras) as ChakraId[]).map((id) => {
-    const chakra = chakraModel.chakras[id];
-    const distanceSquared = (point.x - chakra.anchor.x) ** 2 + (point.y - chakra.anchor.y) ** 2;
-    const compassAffinity = Math.exp(-distanceSquared / (2 * chakraModel.sigma ** 2));
-    const raw = chakraModel.weights.compass * compassAffinity
-      + chakraModel.weights.life_path * lifeAffinity[id]
-      + chakraModel.weights.personal_day * dayAffinity[id];
+  const selected = sensingWordForPoint(point);
+  const lifeAffinity = chakraWordModel.number_affinity[String(lifePath)] ?? chakraWordModel.number_affinity[String(reduceNumber(lifePath))];
+  const dayAffinity = chakraWordModel.number_affinity[String(personalDay)];
+  const chakras = chakraWordModel.chakra_order.map((id) => {
+    const chakra = chakraWordModel.chakras[id];
+    const raw = chakraWordModel.weights.selected_word * (id === selected.chakraId ? 1 : 0)
+      + chakraWordModel.weights.life_path * lifeAffinity[id]
+      + chakraWordModel.weights.personal_day * dayAffinity[id];
     return {
       id,
       zh: chakra.zh,
       themes: chakra.themes,
-      score: Math.round(chakraModel.score.floor + chakraModel.score.span * raw),
+      score: Math.round(chakraWordModel.score.floor + chakraWordModel.score.span * raw),
       raw,
     };
   }).sort((a, b) => b.raw - a.raw || a.id.localeCompare(b.id));
-  return { poles, primary: chakras[0], secondary: chakras[1] };
+  return { selected, primary: chakras[0], secondary: chakras[1] };
 }
 
 function synthesizeEnergy(point: Point, lifePath: number, personalDay: number, dateKey: string): EnergyInsight {
   const projection = projectChakras(point, lifePath, personalDay);
-  const keywordIds = Object.keys(synthesisModel.keywords) as KeywordId[];
-  const scores = Object.fromEntries(keywordIds.map((id) => [id, 0])) as Record<KeywordId, number>;
-  scores[synthesisModel.number_keyword[String(personalDay)]] += synthesisModel.weights.personal_day;
-  scores[synthesisModel.number_keyword[String(lifePath)] ?? synthesisModel.number_keyword[String(reduceNumber(lifePath))]] += synthesisModel.weights.life_path;
-  scores[synthesisModel.chakra_keyword[projection.primary.id]] += synthesisModel.weights.primary_chakra;
-  scores[synthesisModel.chakra_keyword[projection.secondary.id]] += synthesisModel.weights.secondary_chakra;
-  const horizontalMembership = {
-    inward: Math.max(0, -point.x),
-    center: Math.max(0, 1 - Math.abs(point.x)),
-    outward: Math.max(0, point.x),
-  };
-  const verticalMembership = {
-    calm: Math.max(0, -point.y),
-    center: Math.max(0, 1 - Math.abs(point.y)),
-    active: Math.max(0, point.y),
-  };
-  const compassCells = Object.entries(horizontalMembership).flatMap(([horizontalId, horizontalValue]) =>
-    Object.entries(verticalMembership)
-      .filter(([, verticalValue]) => horizontalValue > 0 && verticalValue > 0)
-      .map(([verticalId, verticalValue]) => ({
-        id: `${horizontalId}_${verticalId}`,
-        value: (horizontalValue * verticalValue) ** synthesisModel.compass_response_power,
-      })),
-  );
-  const compassCellTotal = compassCells.reduce((sum, cell) => sum + cell.value, 0) || 1;
-  compassCells.forEach((cell) => {
-    scores[synthesisModel.compass_grid_keyword[cell.id]] += synthesisModel.weights.compass_total * cell.value / compassCellTotal;
-  });
   const dailyThemeId = synthesisModel.number_keyword[String(personalDay)];
-  const rankedKeywordIds = keywordIds.sort((a, b) => scores[b] - scores[a] || a.localeCompare(b));
-  const keywordCandidates = rankedKeywordIds.filter((id) => id !== dailyThemeId);
-  const keywordId = keywordCandidates[0];
-  const horizontal: EnergyPole = projection.poles.inward >= projection.poles.outward ? "inward" : "outward";
-  const vertical: EnergyPole = projection.poles.calm >= projection.poles.active ? "calm" : "active";
-  const distance = Math.min(1, Math.hypot(point.x, point.y) / 1.15);
-  const intensity = distance < 0.33
-    ? { id: "soft" as const, label: "轻柔" }
-    : distance < 0.66
-      ? { id: "clear" as const, label: "清晰" }
-      : { id: "strong" as const, label: "鲜明" };
-  const keyword = synthesisModel.keywords[keywordId];
+  const keywordId = projection.selected.word.keyword_id;
+  const keywordCandidates = Array.from(new Set<KeywordId>([
+    keywordId,
+    synthesisModel.chakra_keyword[projection.primary.id],
+    synthesisModel.chakra_keyword[projection.secondary.id],
+    synthesisModel.number_keyword[String(lifePath)] ?? synthesisModel.number_keyword[String(reduceNumber(lifePath))],
+  ])).filter((id) => id !== dailyThemeId || id === keywordId);
+  const canonicalKeyword = synthesisModel.keywords[keywordId];
+  const keyword = { ...canonicalKeyword, display: projection.selected.word.display };
   const dailyTheme = synthesisModel.keywords[dailyThemeId];
   const numberTheme = numberThemes[String(personalDay)];
-  const energySummary = `今天的主旋律是“${dailyTheme.display}”，你此刻从“${keyword.display}”靠近；${projection.primary.zh}提醒你留意${projection.primary.themes[0]}。`;
+  const intensityByChakra: Record<ChakraId, EnergyInsight["intensity"]> = {
+    root: { id: "soft", label: "轻柔" },
+    sacral: { id: "clear", label: "清晰" },
+    solar_plexus: { id: "strong", label: "鲜明" },
+    heart: { id: "clear", label: "清晰" },
+    throat: { id: "clear", label: "清晰" },
+    third_eye: { id: "soft", label: "轻柔" },
+    crown: { id: "soft", label: "轻柔" },
+  };
+  const energySummary = `今天的主旋律是“${dailyTheme.display}”，你亲手停在“${keyword.display}”；这个选择让${projection.primary.zh}成为此刻最清晰的线索。`;
   return {
     dailyThemeId,
     dailyTheme,
     keywordId,
     keyword,
     keywordCandidates,
+    selectedWord: projection.selected.word,
     primaryChakra: projection.primary,
     secondaryChakra: projection.secondary,
-    poles: projection.poles,
-    direction: {
-      horizontal: { id: horizontal, label: synthesisModel.compass_labels[horizontal] },
-      vertical: { id: vertical, label: synthesisModel.compass_labels[vertical] },
+    resonance: {
+      cell: { column: projection.selected.column, row: projection.selected.row },
+      chakraId: projection.selected.chakraId,
     },
-    intensity,
+    intensity: intensityByChakra[projection.primary.id],
     compositeTitle: `${keyword.display} · ${dailyTheme.display}`,
-    compositeLine: `以${keyword.display}的方式，靠近今天的${dailyTheme.display}。`,
+    compositeLine: `从你选中的“${keyword.display}”出发，靠近今天的“${dailyTheme.display}”。`,
     energySummary,
-    chakraSummary: `${projection.primary.zh}是今天较清晰的线索，邀请你留意${projection.primary.themes.slice(0, 2).join("与")}；${projection.secondary.zh}也在提醒你，为${projection.secondary.themes[0]}留一点空间。${numberTheme?.gentle_prompt ?? ""}`,
+    chakraSummary: `“${keyword.display}”对应${projection.primary.zh}的${projection.primary.themes.slice(0, 2).join("与")}；${projection.secondary.zh}作为数字线索，在一旁提醒你留意${projection.secondary.themes[0]}。${numberTheme?.gentle_prompt ?? ""}`,
   };
 }
 
-type FitReasonMode = "keyword" | "numerology" | "chakra" | "compass" | "practice";
+type FitReasonMode = "keyword" | "numerology" | "chakra" | "resonance" | "practice";
 
 function buildCourseFitReason(
   course: CatalogCourse,
@@ -485,19 +469,17 @@ function buildCourseFitReason(
     course.numerology_tags?.includes(dayNumber)
     || course.numerology_tags?.includes(reduceNumber(lifePath)),
   );
-  const matchesCompass = course.energy_poles.includes(insight.direction.horizontal.id)
-    || course.energy_poles.includes(insight.direction.vertical.id);
   const validModes: Record<FitReasonMode, boolean> = {
     keyword: course.keyword_tags.includes(insight.keywordId),
     numerology: matchesNumerology,
     chakra: Boolean(matchedChakra),
-    compass: matchesCompass,
+    resonance: true,
     practice: true,
   };
   const modeOrders: FitReasonMode[][] = [
-    ["keyword", "numerology", "chakra", "compass", "practice"],
-    ["chakra", "keyword", "compass", "numerology", "practice"],
-    ["compass", "keyword", "practice", "chakra", "numerology"],
+    ["keyword", "numerology", "chakra", "resonance", "practice"],
+    ["chakra", "keyword", "resonance", "numerology", "practice"],
+    ["resonance", "keyword", "practice", "chakra", "numerology"],
   ];
   const orderedModes = modeOrders[index] ?? modeOrders[2];
   const mode = orderedModes.find((candidate) => validModes[candidate] && !usedModes.has(candidate))
@@ -506,13 +488,6 @@ function buildCourseFitReason(
   usedModes.add(mode);
 
   const experience = experienceSubjectByFormat[course.format] ?? `这场${course.format_label}`;
-  const directionKey = `${insight.direction.horizontal.id}_${insight.direction.vertical.id}`;
-  const directionAction: Record<string, string> = {
-    inward_calm: "安静观察",
-    inward_active: "把内在意愿带入行动",
-    outward_calm: "在关系中慢慢连接",
-    outward_active: "从互动与行动进入状态",
-  };
   const seed = `${dateKey}:${course.course_id}:${insight.keywordId}:${mode}`;
   if (mode === "keyword") {
     return chooseStable([
@@ -536,12 +511,11 @@ function buildCourseFitReason(
       `当${matchedChakra.zh}指向${chakraTheme}，${experience}能让注意力落在更具体的感受上。`,
     ], seed);
   }
-  if (mode === "compass") {
-    const action = directionAction[directionKey] ?? "顺着当下的节奏";
+  if (mode === "resonance") {
     return chooseStable([
-      `罗盘停在${insight.direction.horizontal.label}与${insight.direction.vertical.label}之间，${experience}适合用${action}的方式靠近自己。`,
-      `你此刻偏向${insight.direction.horizontal.label}与${insight.direction.vertical.label}；${experience}保留了${action}的节奏。`,
-      `比起急着得到答案，此刻更适合${action}；${experience}正好给它一个自然入口。`,
+      `你亲手停在“${insight.keyword.display}”，${experience}为这份当下共鸣提供一个具体入口。`,
+      `“${insight.keyword.display}”是你自己选中的线索；${experience}让它可以被继续感受。`,
+      `顺着你停下来的“${insight.keyword.display}”，${experience}保留了一条自然进入的路径。`,
     ], seed);
   }
   return chooseStable([
@@ -559,9 +533,7 @@ function recommendCourses(
   dateKey: string,
 ): Course[] {
   const intensityValue = { low: 0, medium: 0.5, high: 1 } as const;
-  const targetIntensity = insight.poles.active > 0.75 && insight.poles.outward > 0.65
-    ? 1
-    : insight.poles.active > insight.poles.calm ? 0.5 : 0;
+  const targetIntensity = insight.intensity.id === "strong" ? 1 : insight.intensity.id === "clear" ? 0.5 : 0;
   const targetDuration = targetIntensity === 1 ? 90 : targetIntensity === 0.5 ? 60 : 30;
   const primaryChakraCourses = activeCourses.filter((course) => (
     course.chakra_tags.includes(insight.primaryChakra.id)
@@ -584,23 +556,20 @@ function recommendCourses(
     const primaryMatch = course.chakra_tags.includes(insight.primaryChakra.id) ? 1 : 0;
     const secondaryMatch = course.chakra_tags.includes(insight.secondaryChakra.id) ? 1 : 0;
     const chakraScore = 0.7 * primaryMatch + 0.3 * secondaryMatch;
-    const compassScore = course.energy_poles.length
-      ? course.energy_poles.reduce((sum, pole) => sum + insight.poles[pole], 0) / course.energy_poles.length
-      : 0;
+    const keywordScore = Math.max(0, ...course.keyword_tags.map((tag) => {
+      if (tag === insight.keywordId) return 1;
+      const index = insight.keywordCandidates.slice(1, 3).indexOf(tag);
+      return index === 0 ? 0.5 : index === 1 ? 0.25 : 0;
+    }));
     const numerologyScore = course.numerology_tags?.length
       ? 0.75 * (course.numerology_tags.includes(dayNumber) ? 1 : 0)
         + 0.25 * (course.numerology_tags.includes(reduceNumber(lifePath)) ? 1 : 0)
-      : Math.max(0, ...course.keyword_tags.map((tag) => {
-        if (tag === insight.keywordId) return 1;
-        if (tag === insight.dailyThemeId) return 0.82;
-        const index = insight.keywordCandidates.slice(1, 3).indexOf(tag);
-        return index === 0 ? 0.45 : index === 1 ? 0.25 : 0;
-      }));
+      : course.keyword_tags.includes(insight.dailyThemeId) ? 0.75 : 0;
     const intensityFit = 1 - Math.abs(intensityValue[course.intensity] - targetIntensity);
     const durationFit = Math.max(0, 1 - Math.abs(course.duration_min - targetDuration) / Math.max(targetDuration, 12));
     const practiceFit = 0.6 * intensityFit + 0.4 * durationFit;
     const recencyFit = recentIds.has(course.course_id) ? 0 : 1;
-    return 0.35 * chakraScore + 0.25 * compassScore + 0.2 * numerologyScore + 0.1 * practiceFit + 0.1 * recencyFit;
+    return 0.5 * chakraScore + 0.2 * keywordScore + 0.1 * numerologyScore + 0.1 * practiceFit + 0.1 * recencyFit;
   };
   const candidates = candidateCourses.map((course) => ({ course, score: scoreCourse(course) }));
   const selected: CatalogCourse[] = [];
@@ -628,8 +597,7 @@ function recommendCourses(
       dayNumber,
       insight.keywordId,
       insight.primaryChakra.id,
-      insight.direction.horizontal.id,
-      insight.direction.vertical.id,
+      insight.selectedWord.id,
     ].join(":");
     const exploration = chooseStable(explorationPool, explorationSeed);
     if (exploration) selected.push(exploration.course);
@@ -675,7 +643,7 @@ function dailyGreetingCacheKey(dateKey: string, dayNumber: number, lifePath: num
 }
 
 function energyReadingCacheKey(dateKey: string, dayNumber: number, insight: EnergyInsight) {
-  return `haf-energy-reading:v3:${dateKey}:${dayNumber}:${insight.keywordId}:${insight.direction.horizontal.id}:${insight.direction.vertical.id}:${insight.intensity.id}:${insight.primaryChakra.id}:${insight.secondaryChakra.id}`;
+  return `haf-energy-reading:v4:${dateKey}:${dayNumber}:${insight.selectedWord.id}:${insight.primaryChakra.id}:${insight.secondaryChakra.id}`;
 }
 
 async function requestJson<T>(endpoint: string, payload: Record<string, unknown>): Promise<T | null> {
@@ -769,10 +737,10 @@ async function prepareEnergyReading({
       personal_day: dayNumber,
       daily_theme: insight.dailyTheme.display,
       moment_keyword: insight.keyword.display,
-      compass: {
-        horizontal: insight.direction.horizontal.label,
-        vertical: insight.direction.vertical.label,
-        intensity: insight.intensity.label,
+      resonance: {
+        selected_word_id: insight.selectedWord.id,
+        selected_word: insight.selectedWord.display,
+        selected_chakra: insight.primaryChakra.zh,
       },
       chakras: {
         primary: { name: insight.primaryChakra.zh, themes: insight.primaryChakra.themes.slice(0, 2) },
@@ -1087,21 +1055,6 @@ const sensingDimensions: Record<ChakraId, { core: string; tone: string }> = {
   crown: { core: "意识", tone: "#9b72d0" },
 };
 
-type SensingGestureMode = "slow" | "drift" | "wide" | "forceful";
-
-const sensingProcessWords: Record<KeywordId, Record<SensingGestureMode, string[]>> = {
-  begin: { slow: ["萌芽", "初启"], drift: ["试一试", "开一扇门"], wide: ["走出去", "遇见新的"], forceful: ["起身", "迈出一步"] },
-  connect: { slow: ["倾听", "陪伴"], drift: ["靠近", "相遇"], wide: ["共鸣", "连结"], forceful: ["回应", "敞开"] },
-  express: { slow: ["酝酿", "辨清"], drift: ["传递", "说出"], wide: ["分享", "沟通"], forceful: ["发声", "坦然"] },
-  ground: { slow: ["沉静", "安住"], drift: ["回身", "落地"], wide: ["承载", "支撑"], forceful: ["站稳", "扎根"] },
-  flow: { slow: ["松动", "舒展"], drift: ["流转", "经过"], wide: ["延展", "自然"], forceful: ["破冰", "涌动"] },
-  care: { slow: ["温柔", "体恤"], drift: ["照料", "善待"], wide: ["守护", "拥抱"], forceful: ["为己", "设界"] },
-  insight: { slow: ["内观", "静听"], drift: ["察觉", "看见"], wide: ["辨识", "清明"], forceful: ["直面", "聚焦"] },
-  strength: { slow: ["蓄力", "定心"], drift: ["选择", "坚定"], wide: ["拓展", "突破"], forceful: ["勇气", "推进"] },
-  release: { slow: ["松开", "卸下"], drift: ["释然", "留白"], wide: ["告别", "腾空"], forceful: ["放手", "轻装"] },
-  integrate: { slow: ["沉淀", "归位"], drift: ["收拢", "调和"], wide: ["联结", "合一"], forceful: ["重整", "平衡"] },
-};
-
 type SensingCursor = {
   x: number;
   y: number;
@@ -1234,10 +1187,7 @@ function CompassScreen() {
   const { point, setPoint, lifePath, dayNumber, dateKey } = useJourney();
   const initialInsight = useMemo(() => synthesizeEnergy(point, lifePath, dayNumber, dateKey), [dateKey, dayNumber, lifePath, point]);
   const [phase, setPhase] = useState<"idle" | "sensing" | "locked">("idle");
-  const [dimensionId, setDimensionId] = useState<ChakraId>(initialInsight.primaryChakra.id);
-  const [currentKeywordId, setCurrentKeywordId] = useState<KeywordId>(initialInsight.keywordId);
-  const [currentDirection, setCurrentDirection] = useState(initialInsight.direction);
-  const [processWord, setProcessWord] = useState(sensingProcessWords[initialInsight.keywordId].drift[0]);
+  const [currentInsight, setCurrentInsight] = useState(initialInsight);
   const [readyToComplete, setReadyToComplete] = useState(false);
   const [cursor, setCursor] = useState<SensingCursor>({
     x: 196,
@@ -1249,37 +1199,9 @@ function CompassScreen() {
     sequence: 0,
   });
   const livePointRef = useRef(point);
-  const pendingInsightRef = useRef(initialInsight);
-  const pendingGestureModeRef = useRef<SensingGestureMode>("drift");
-  const shownProcessWordsRef = useRef(new Set<string>());
-  const processStepRef = useRef(0);
-  const sessionRef = useRef({ start: 0, lastTime: 0, lastX: 196, lastY: 448, totalTravel: 0, lastWordAt: 0 });
+  const sessionRef = useRef({ start: 0, lastTime: 0, lastX: 196, lastY: 448, revealX: 196, revealY: 448, cellKey: "" });
 
-  const lockInsight = (insight: EnergyInsight) => {
-    setCurrentKeywordId(insight.keywordId);
-    setCurrentDirection(insight.direction);
-    setDimensionId(insight.primaryChakra.id);
-  };
-
-  const revealProcessInsight = (insight: EnergyInsight) => {
-    const family = sensingProcessWords[insight.keywordId];
-    const preferred = family[pendingGestureModeRef.current];
-    const fullPool = [...preferred, ...Object.values(family).flat().filter((word) => !preferred.includes(word))];
-    let available = fullPool.filter((word) => !shownProcessWordsRef.current.has(word));
-    if (!available.length) {
-      fullPool.forEach((word) => shownProcessWordsRef.current.delete(word));
-      available = fullPool;
-    }
-    const nextWord = available[processStepRef.current % available.length];
-    processStepRef.current += 1;
-    shownProcessWordsRef.current.add(nextWord);
-    setProcessWord(nextWord);
-    setCurrentKeywordId(insight.keywordId);
-    setCurrentDirection(insight.direction);
-    setDimensionId(insight.primaryChakra.id);
-  };
-
-  const updateGesture = (event: ReactPointerEvent<HTMLDivElement>) => {
+  const updateGesture = (event: ReactPointerEvent<HTMLDivElement>, forceReveal = false) => {
     const bounds = event.currentTarget.getBoundingClientRect();
     const now = performance.now();
     const session = sessionRef.current;
@@ -1288,36 +1210,21 @@ function CompassScreen() {
     const elapsed = Math.max(16, now - session.lastTime);
     const distance = Math.hypot(x - session.lastX, y - session.lastY);
     const speed = distance / elapsed;
-    session.totalTravel += distance;
     const rawPoint = {
       x: clampSensing((x / bounds.width) * 2 - 1, -.88, .88),
       y: clampSensing((y / bounds.height) * 2 - 1, -.88, .88),
     };
-    const radius = Math.hypot(rawPoint.x, rawPoint.y);
     const hold = now - session.start;
-    const slowCenter = radius < .38 && speed < .24 && hold > 420 ? 1 : 0;
-    const wideMovement = session.totalTravel > bounds.width * .62 && radius > .42 ? 1 : 0;
     const forcefulMovement = clampSensing((speed - .32) / .72, 0, 1);
-    pendingGestureModeRef.current = forcefulMovement > .55
-      ? "forceful"
-      : slowCenter
-        ? "slow"
-        : wideMovement
-          ? "wide"
-          : "drift";
-    const shapedPoint = {
-      x: clampSensing(rawPoint.x + wideMovement * .2 - slowCenter * .18, -.88, .88),
-      y: clampSensing(rawPoint.y + forcefulMovement * .3 - slowCenter * .22, -.88, .88),
-    };
-    livePointRef.current = shapedPoint;
-    const nextInsight = synthesizeEnergy(shapedPoint, lifePath, dayNumber, dateKey);
-    pendingInsightRef.current = nextInsight;
-    const nextDimensionId = nextInsight.primaryChakra.id;
-    setDimensionId(nextDimensionId);
-    setCurrentDirection(nextInsight.direction);
-    if (now - session.lastWordAt >= 1150) {
-      revealProcessInsight(nextInsight);
-      session.lastWordAt = now;
+    livePointRef.current = rawPoint;
+    const nextInsight = synthesizeEnergy(rawPoint, lifePath, dayNumber, dateKey);
+    const cellKey = `${nextInsight.resonance.cell.column}:${nextInsight.resonance.cell.row}`;
+    const distanceFromReveal = Math.hypot(x - session.revealX, y - session.revealY);
+    if (forceReveal || (cellKey !== session.cellKey && distanceFromReveal >= 24)) {
+      setCurrentInsight(nextInsight);
+      session.cellKey = cellKey;
+      session.revealX = x;
+      session.revealY = y;
     }
     const nativePressure = event.pressure > 0 ? event.pressure : 0;
     const pressure = clampSensing(.18 + nativePressure * .26 + Math.min(1, hold / 950) * .36 + forcefulMovement * .2, .18, 1);
@@ -1327,12 +1234,13 @@ function CompassScreen() {
       xRatio: x / bounds.width,
       yRatio: y / bounds.height,
       pressure,
-      tone: sensingDimensions[nextDimensionId].tone,
+      tone: sensingDimensions[nextInsight.primaryChakra.id].tone,
       sequence: current.sequence + 1,
     }));
     session.lastTime = now;
     session.lastX = x;
     session.lastY = y;
+    return nextInsight;
   };
 
   useEffect(() => {
@@ -1342,10 +1250,6 @@ function CompassScreen() {
       const session = sessionRef.current;
       const holdPressure = clampSensing((now - session.start) / 1200, 0, 1);
       setCursor((current) => ({ ...current, pressure: Math.max(current.pressure, .22 + holdPressure * .46), sequence: current.sequence + 1 }));
-      if (now - session.lastWordAt >= 1150) {
-        revealProcessInsight(pendingInsightRef.current);
-        session.lastWordAt = now;
-      }
     }, 140);
     return () => window.clearInterval(timer);
   }, [phase]);
@@ -1366,33 +1270,27 @@ function CompassScreen() {
     const bounds = event.currentTarget.getBoundingClientRect();
     const localX = clampSensing(event.clientX - bounds.left, 0, bounds.width);
     const localY = clampSensing(event.clientY - bounds.top, 0, bounds.height);
-    sessionRef.current = { start: now, lastTime: now, lastX: localX, lastY: localY, totalTravel: 0, lastWordAt: now };
-    pendingInsightRef.current = synthesizeEnergy(livePointRef.current, lifePath, dayNumber, dateKey);
-    pendingGestureModeRef.current = "drift";
-    shownProcessWordsRef.current = new Set();
-    processStepRef.current = 0;
-    revealProcessInsight(pendingInsightRef.current);
+    sessionRef.current = { start: now, lastTime: now, lastX: localX, lastY: localY, revealX: localX, revealY: localY, cellKey: "" };
     setPhase("sensing");
-    updateGesture(event);
+    updateGesture(event, true);
   };
 
   const finishSensing = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (!event.currentTarget.hasPointerCapture(event.pointerId)) return;
-    updateGesture(event);
+    const finalInsight = updateGesture(event, true);
     event.currentTarget.releasePointerCapture(event.pointerId);
     setPoint(livePointRef.current);
-    lockInsight(pendingInsightRef.current);
+    setCurrentInsight(finalInsight);
     setPhase("locked");
     setCursor((current) => ({ ...current, pressure: Math.max(.72, current.pressure), sequence: current.sequence + 1 }));
   };
 
-  const lockedWord = synthesisModel.keywords[currentKeywordId].display;
-  const currentWord = phase === "locked" ? lockedWord : processWord;
+  const currentWord = currentInsight.keyword.display;
   const backgroundX = (cursor.xRatio - .5) * -18;
   const backgroundY = (cursor.yRatio - .5) * -14;
   return (
     <EmbeddedScreen className="compass-host">
-      <div className={`compass-screen sensing-screen sensing-${phase}`} data-testid="compass-screen" data-phase={phase} data-dimension={dimensionId}>
+      <div className={`compass-screen sensing-screen sensing-${phase}`} data-testid="compass-screen" data-phase={phase} data-dimension={currentInsight.primaryChakra.id} data-word-id={phase === "idle" ? "" : currentInsight.selectedWord.id}>
         <img
           className="sensing-background"
           src="/assets/haf/visual-refresh/intuitive-flow-field-v1.png"
@@ -1412,7 +1310,7 @@ function CompassScreen() {
           aria-valuemin={-100}
           aria-valuemax={100}
           aria-valuenow={Math.round(livePointRef.current.x * 100)}
-          aria-valuetext={`${currentDirection.horizontal.label} · ${currentDirection.vertical.label} · ${currentWord}`}
+          aria-valuetext={phase === "idle" ? "尚未选择" : `${currentWord} · ${currentInsight.primaryChakra.zh}`}
           tabIndex={0}
           onPointerDown={beginSensing}
           onPointerMove={(event) => event.currentTarget.hasPointerCapture(event.pointerId) && updateGesture(event)}
@@ -1433,13 +1331,15 @@ function CompassScreen() {
           />
         </div>
         <section className="sensing-word" aria-live="polite">
-          <motion.small layout>{phase === "locked" ? "此刻与你产生回应的是——" : phase === "sensing" ? "沿着动作浮现" : "一个词正在靠近"}</motion.small>
+          <motion.small layout>{phase === "locked" ? "你停在这个词上——" : phase === "sensing" ? "这里浮现" : "触碰一个位置"}</motion.small>
           <AnimatePresence mode="wait">
-            <motion.strong key={currentWord} initial={{ opacity: 0, y: 9, filter: "blur(7px)" }} animate={{ opacity: 1, y: 0, filter: "blur(0px)" }} exit={{ opacity: 0, y: -7, filter: "blur(6px)" }} transition={{ duration: .58, ease: "easeOut" }}>
-              {currentWord}
-            </motion.strong>
+            {phase !== "idle" && (
+              <motion.strong key={currentWord} initial={{ opacity: 0, y: 9, filter: "blur(7px)" }} animate={{ opacity: 1, y: 0, filter: "blur(0px)" }} exit={{ opacity: 0, y: -7, filter: "blur(6px)" }} transition={{ duration: .58, ease: "easeOut" }}>
+                {currentWord}
+              </motion.strong>
+            )}
           </AnimatePresence>
-          <p>{phase === "idle" ? "移动越久，出现的线索越丰富" : phase === "sensing" ? `${currentDirection.horizontal.label} · ${currentDirection.vertical.label}` : `这是今日“${initialInsight.dailyTheme.display}”之外，你此刻的回应`}</p>
+          <p>{phase === "idle" ? "只有位置改变，新的词才会出现" : phase === "sensing" ? "继续移动，或松手留下这个词" : `${currentInsight.primaryChakra.zh} · ${currentInsight.primaryChakra.themes.slice(0, 2).join(" · ")}`}</p>
         </section>
         <AnimatePresence>
           {phase === "locked" && readyToComplete && (
@@ -1523,7 +1423,7 @@ function ResultScreen() {
           </div>
           <div className="energy-facets" aria-label="今日能量的三个线索">
             <span><small>今日灵数</small><strong>{dayNumber}</strong><em>{insight.dailyTheme.display}</em></span>
-            <span><small>此刻方向</small><strong>{insight.direction.horizontal.label}</strong><em>{insight.direction.vertical.label}</em></span>
+            <span><small>当下共鸣</small><strong>{insight.keyword.display}</strong><em>由你亲手选中</em></span>
             <span><small>能量落点</small><strong>{insight.primaryChakra.zh}</strong><em>{insight.primaryChakra.themes.slice(0, 2).join(" · ")}</em></span>
           </div>
         </section>

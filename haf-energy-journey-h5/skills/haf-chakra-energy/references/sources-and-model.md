@@ -16,7 +16,26 @@ No accepted traditional or scientific formula converts a two-dimensional touch c
 
 Do not describe the HAF formula as ancient, Vedic, Tantric, medical, biometric, or objectively measured.
 
-## HAF compass model v0.1
+## Current HAF word-resonance model v0.2
+
+The current sensing experience reverses the earlier inference direction. A normalized touch position addresses one cell in a hidden 7-column × 10-row field. Every cell contains one unique user-facing word, each chakra owns exactly ten words, and the field interleaves chakra families so no visible region represents a chakra or four-pole direction.
+
+Words change only after the finger crosses into another cell. Time, pressure, and movement speed may affect visual feedback, but they do not rotate words or change the selected chakra. Releasing the finger locks the visible word; that word's declared chakra is always the primary result.
+
+```text
+raw_affinity =
+  0.70 × selected_word_affinity
+  + 0.20 × life_path_affinity
+  + 0.10 × personal_day_affinity
+
+display_score = round(20 + 75 × raw_affinity)
+```
+
+The selected-word weight intentionally dominates so the result agrees with the user's conscious resonance. Numerology remains a soft supporting prior rather than silently overruling the word.
+
+## Superseded HAF compass model v0.1
+
+The following model is retained for historical audit only and is no longer used by the active sensing experience.
 
 Coordinate convention:
 

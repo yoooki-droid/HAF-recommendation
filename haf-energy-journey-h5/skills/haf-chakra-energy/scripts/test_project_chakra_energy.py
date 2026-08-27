@@ -12,18 +12,38 @@ assert SPEC and SPEC.loader
 SPEC.loader.exec_module(MODULE)
 
 
-class ChakraProjectionTests(unittest.TestCase):
-    def test_inward_calm_with_seven_centers_third_eye(self) -> None:
-        result = MODULE.project(-0.80, -0.75, 7, 7)
-        self.assertEqual(result["primary_chakra"]["id"], "third_eye")
+class ChakraWordProjectionTests(unittest.TestCase):
+    @staticmethod
+    def point_for_cell(column: int, row: int) -> tuple[float, float]:
+        return ((column + 0.5) / 7 * 2 - 1, (row + 0.5) / 10 * 2 - 1)
 
-    def test_outward_active_with_one_centers_solar_plexus(self) -> None:
-        result = MODULE.project(0.80, 0.80, 1, 8)
-        self.assertEqual(result["primary_chakra"]["id"], "solar_plexus")
+    def test_all_seventy_cells_select_a_unique_word_and_its_chakra(self) -> None:
+        seen_words: set[str] = set()
+        seen_displays: set[str] = set()
+        chakra_counts: dict[str, int] = {}
+        for row in range(10):
+            for column in range(7):
+                x, y = self.point_for_cell(column, row)
+                result = MODULE.project(x, y, 7, 4)
+                selected = result["interaction"]["selected_word"]
+                self.assertEqual(result["primary_chakra"]["id"], selected["chakra_id"])
+                seen_words.add(selected["id"])
+                seen_displays.add(selected["display"])
+                chakra_counts[selected["chakra_id"]] = chakra_counts.get(selected["chakra_id"], 0) + 1
+        self.assertEqual(len(seen_words), 70)
+        self.assertEqual(len(seen_displays), 70)
+        self.assertTrue(seen_displays.isdisjoint({"开始", "连接", "表达", "安定", "流动", "关照", "照见", "力量", "放下", "整合"}))
+        self.assertEqual(set(chakra_counts.values()), {10})
 
-    def test_center_with_six_centers_heart(self) -> None:
-        result = MODULE.project(0.0, 0.0, 6, 2)
-        self.assertEqual(result["primary_chakra"]["id"], "heart")
+    def test_same_cell_is_stable(self) -> None:
+        first = MODULE.project(-0.42, -0.24, 9, 6)
+        second = MODULE.project(-0.42, -0.24, 9, 6)
+        self.assertEqual(first["interaction"], second["interaction"])
+
+    def test_position_change_crossing_a_cell_changes_the_word(self) -> None:
+        first = MODULE.project(-0.42, -0.24, 9, 6)
+        second = MODULE.project(0.42, 0.24, 9, 6)
+        self.assertNotEqual(first["interaction"]["selected_word"]["id"], second["interaction"]["selected_word"]["id"])
 
     def test_output_contains_all_seven_ranked_chakras(self) -> None:
         result = MODULE.project(-0.30, 0.25, 9, 4)

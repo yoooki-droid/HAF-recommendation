@@ -1,4 +1,4 @@
 interface:
   display_name: "HAF 今日能量总结"
-  short_description: "合并灵数、罗盘与七脉轮信号，生成可解释的关键词和今日总结"
+  short_description: "合并灵数、用户选词与七脉轮信号，生成可解释的今日总结"
   default_prompt: "Use $haf-energy-synthesis to combine HAF numerology and chakra results into a grounded daily keyword and reflection."

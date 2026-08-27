@@ -1,14 +1,8 @@
 {
-  "synthesis_version": "haf.energy-synthesis.v3",
+  "synthesis_version": "haf.energy-synthesis.v4",
   "selection": {
-    "exclude_daily_theme_from_moment": true
-  },
-  "weights": {
-    "personal_day": 0.12,
-    "life_path": 0.05,
-    "primary_chakra": 0.22,
-    "secondary_chakra": 0.06,
-    "compass_total": 0.55
+    "policy": "user_selected_chakra_word",
+    "daily_theme_remains_separate": true
   },
   "number_keyword": {
     "1": "begin",
@@ -32,30 +26,6 @@
     "throat": "express",
     "third_eye": "insight",
     "crown": "release"
-  },
-  "compass_keyword": {
-    "inward": "insight",
-    "outward": "connect",
-    "calm": "integrate",
-    "active": "strength"
-  },
-  "compass_grid_keyword": {
-    "inward_calm": "insight",
-    "center_calm": "integrate",
-    "outward_calm": "express",
-    "inward_center": "care",
-    "center_center": "integrate",
-    "outward_center": "connect",
-    "inward_active": "ground",
-    "center_active": "flow",
-    "outward_active": "strength"
-  },
-  "compass_response_power": 1.35,
-  "compass_labels": {
-    "inward": "向内求索",
-    "outward": "向外连接",
-    "calm": "安静整合",
-    "active": "唤醒行动"
   },
   "keywords": {
     "begin": {"display": "开始", "guidance": "把注意力放回一个真正想迈出的第一步。", "reflection_prompt": "今天，我最愿意从哪一个小小的开始出发？"},

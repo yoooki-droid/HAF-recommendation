@@ -49,7 +49,6 @@ def release_insight():
         numerology["personal_cycle"]["personal_day"],
     )
     result = SYNTHESIS.synthesize(numerology, chakra)
-    result["source_compass"] = chakra["compass"]["four_poles"]
     return result
 
 

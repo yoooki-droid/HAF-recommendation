@@ -115,14 +115,20 @@ await page.mouse.move(sensingBox.x + sensingBox.width * .46, sensingBox.y + sens
 await page.mouse.down();
 await page.mouse.move(sensingBox.x + sensingBox.width * .82, sensingBox.y + sensingBox.height * .70, { steps: 5 });
 await page.waitForTimeout(500);
-const firstProcessWord = (await compassScreen.locator(".sensing-word strong").innerText()).trim();
+const firstPositionWord = (await compassScreen.locator(".sensing-word strong").innerText()).trim();
 const activeSensingScreenshotPath = path.join(outputDir, "compass-active-implementation.png");
 await compassModule.screenshot({ path: activeSensingScreenshotPath, animations: "allow" });
 screenshots["compass-active"] = activeSensingScreenshotPath;
 await page.waitForTimeout(1_350);
-const laterProcessWord = (await compassScreen.locator(".sensing-word strong").innerText()).trim();
-if (firstProcessWord === laterProcessWord) {
-  throw new Error(`Expected the sensing process vocabulary to continue, but it remained ${firstProcessWord}`);
+const stationaryWord = (await compassScreen.locator(".sensing-word strong").innerText()).trim();
+if (firstPositionWord !== stationaryWord) {
+  throw new Error(`Expected a stationary touch to keep ${firstPositionWord}, but it changed to ${stationaryWord}`);
+}
+await page.mouse.move(sensingBox.x + sensingBox.width * .24, sensingBox.y + sensingBox.height * .32, { steps: 5 });
+await page.waitForTimeout(450);
+const secondPositionWord = (await compassScreen.locator(".sensing-word strong").innerText()).trim();
+if (firstPositionWord === secondPositionWord) {
+  throw new Error(`Expected a new field position to reveal another word, but it remained ${firstPositionWord}`);
 }
 await page.mouse.up();
 await page.waitForFunction(() => document.querySelector("[data-testid='compass-screen']")?.getAttribute("data-phase") === "locked");
@@ -179,9 +185,7 @@ const chakraIdByLabel = {
 };
 const primaryChakraLabel = await page.locator(".energy-facets > span").nth(2).locator("strong").textContent();
 const primaryChakraId = chakraIdByLabel[primaryChakraLabel?.trim()];
-if (primaryChakraId !== "solar_plexus") {
-  throw new Error(`Expected the recommendation regression fixture to resolve to solar_plexus, got ${primaryChakraId}`);
-}
+if (!primaryChakraId) throw new Error(`Unknown displayed primary chakra ${primaryChakraLabel}`);
 const primaryPoolIds = new Set(activeCatalogCourses
   .filter((course) => course.chakra_tags.includes(primaryChakraId))
   .map((course) => course.course_id));
@@ -311,10 +315,12 @@ const summary = {
     profileControls: "passed",
     primaryCTA: "passed",
     sensingBackground: sensingBackgroundSource,
-    sensingGesture: "hold-drag-release locked a weighted word",
-    firstProcessWord,
-    laterProcessWord,
-    processVocabularyContinues: firstProcessWord !== laterProcessWord,
+    sensingGesture: "position changes reveal words; release locks the selected word and its chakra",
+    firstPositionWord,
+    stationaryWord,
+    secondPositionWord,
+    stationaryWordStable: firstPositionWord === stationaryWord,
+    positionChangeRevealsWord: firstPositionWord !== secondPositionWord,
     lockedSensingWord,
     resultDailyTheme,
     distinctMomentAndDailyTheme: lockedSensingWord !== resultDailyTheme,

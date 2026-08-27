@@ -9,11 +9,11 @@ from pathlib import Path
 from typing import Any
 
 SCHEMA_VERSION = "haf.course-recommendations.v1"
-RECOMMENDATION_VERSION = "haf.course-ranking.v2-primary-chakra-gate"
+RECOMMENDATION_VERSION = "haf.course-ranking.v3-word-resonance"
 WEIGHTS = {
-    "chakra": 0.35,
-    "compass": 0.25,
+    "chakra": 0.50,
     "keyword": 0.20,
+    "numerology": 0.10,
     "practice_fit": 0.10,
     "recency": 0.10,
 }
@@ -55,8 +55,8 @@ def load_json(path: str) -> dict[str, Any]:
 
 
 def validate_inputs(insight: dict[str, Any], catalog: dict[str, Any]) -> None:
-    if insight.get("schema_version") != "haf.daily-energy-insight.v2":
-        raise ValueError("insight schema must be haf.daily-energy-insight.v2")
+    if insight.get("schema_version") != "haf.daily-energy-insight.v3":
+        raise ValueError("insight schema must be haf.daily-energy-insight.v3")
     if not isinstance(catalog.get("catalog_version"), str):
         raise ValueError("catalog_version is required")
     courses = catalog.get("courses")
@@ -75,43 +75,12 @@ def validate_inputs(insight: dict[str, Any], catalog: dict[str, Any]) -> None:
 
 
 def target_intensity(insight: dict[str, Any]) -> str:
-    direction = insight["direction"]
-    chakra_poles = insight.get("source_compass")
-    if chakra_poles is not None:
-        poles = chakra_poles
-    else:
-        horizontal = direction["horizontal"]["id"]
-        vertical = direction["vertical"]["id"]
-        intensity = float(direction["intensity"])
-        poles = {
-            "outward": 0.75 if horizontal == "outward" else 0.25,
-            "inward": 0.75 if horizontal == "inward" else 0.25,
-            "active": 0.75 if vertical == "active" else 0.25,
-            "calm": 0.75 if vertical == "calm" else 0.25,
-        }
-        if intensity < 0.35:
-            poles = {key: 0.5 for key in poles}
-    if poles["active"] > 0.75 and poles["outward"] > 0.65:
+    chakra_id = insight["primary_chakra"]["id"]
+    if chakra_id == "solar_plexus":
         return "high"
-    if poles["active"] > poles["calm"]:
+    if chakra_id in {"sacral", "heart", "throat"}:
         return "medium"
     return "low"
-
-
-def recover_poles(insight: dict[str, Any]) -> dict[str, float]:
-    if "source_compass" in insight:
-        return {key: float(value) for key, value in insight["source_compass"].items()}
-    horizontal = insight["direction"]["horizontal"]["id"]
-    vertical = insight["direction"]["vertical"]["id"]
-    intensity = float(insight["direction"]["intensity"])
-    tilt = 0.5 + min(0.45, 0.45 * intensity)
-    opposite = 1 - tilt
-    return {
-        "inward": tilt if horizontal == "inward" else opposite,
-        "outward": tilt if horizontal == "outward" else opposite,
-        "calm": tilt if vertical == "calm" else opposite,
-        "active": tilt if vertical == "active" else opposite,
-    }
 
 
 def keyword_match(insight: dict[str, Any], course: dict[str, Any]) -> float:
@@ -121,6 +90,11 @@ def keyword_match(insight: dict[str, Any], course: dict[str, Any]) -> float:
         if candidate["id"] in course["keyword_tags"]:
             result = max(result, strengths[index])
     return result
+
+
+def numerology_match(insight: dict[str, Any], course: dict[str, Any]) -> float:
+    daily_id = insight["daily_theme"]["id"]
+    return 1.0 if daily_id in course["keyword_tags"] else 0.0
 
 
 def practice_fit(course: dict[str, Any], target: str) -> float:
@@ -143,18 +117,15 @@ def score_course(
         0.7 * (1.0 if primary_id in course["chakra_tags"] else 0.0)
         + 0.3 * (1.0 if secondary_id in course["chakra_tags"] else 0.0)
     )
-    poles = recover_poles(insight)
-    compass_score = sum(poles[pole] for pole in course["energy_poles"]) / len(
-        course["energy_poles"]
-    )
     keyword_score = keyword_match(insight, course)
+    numerology_score = numerology_match(insight, course)
     target = target_intensity(insight)
     practice_score = practice_fit(course, target)
     recency_score = 0.0 if course["course_id"] in recent_course_ids else 1.0
     breakdown = {
         "chakra": chakra_score,
-        "compass": compass_score,
         "keyword": keyword_score,
+        "numerology": numerology_score,
         "practice_fit": practice_score,
         "recency": recency_score,
     }
@@ -184,8 +155,6 @@ def diversity_penalty(candidate: dict[str, Any], selected: list[dict[str, Any]])
 def fit_reason(insight: dict[str, Any], course: dict[str, Any]) -> tuple[str, list[str]]:
     keyword = insight["keyword"]
     primary = insight["primary_chakra"]
-    horizontal = insight["direction"]["horizontal"]
-    vertical = insight["direction"]["vertical"]
     experience = EXPERIENCE_SUBJECTS.get(
         course.get("format"), f"这场{course.get('format_label', '体验')}"
     )
@@ -199,15 +168,9 @@ def fit_reason(insight: dict[str, Any], course: dict[str, Any]) -> tuple[str, li
             f"{primary['zh']}是此刻较清晰的线索，{experience}会{course['fit_statement']}。",
             [f"primary_chakra:{primary['id']}"],
         )
-    for direction in (horizontal, vertical):
-        if direction["id"] in course["energy_poles"]:
-            return (
-                f"你此刻更靠近{direction['label']}，{experience}会{course['fit_statement']}。",
-                [f"compass:{direction['id']}"],
-            )
     return (
-        f"顺着此刻的能量节奏，{experience}会{course['fit_statement']}。",
-        ["practice_fit"],
+        f"你亲手停在“{keyword['display']}”，{experience}会{course['fit_statement']}。",
+        [f"selected_word:{insight['moment_keyword']['word_id']}"],
     )
 
 
@@ -269,7 +232,7 @@ def recommend(
             "keyword": insight["keyword"],
             "primary_chakra": insight["primary_chakra"],
             "secondary_chakra": insight["secondary_chakra"],
-            "direction": insight["direction"],
+            "resonance": insight["resonance"],
         },
         "recommendations": selected,
         "candidate_count": len(eligible),

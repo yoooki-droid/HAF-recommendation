@@ -1,15 +1,15 @@
 ---
 name: haf-chakra-energy
-description: Project an HAF four-pole compass point plus deterministic numerology values into seven relative chakra reflection scores, primary and secondary themes, four-pole weights, and auditable contribution evidence. Use when an HAF daily-energy journey, visualization, test fixture, or course-recommendation workflow needs a reproducible compass-to-chakra model; never present the result as a traditional formula, biological measurement, diagnosis, or treatment.
+description: Map an HAF sensing-field position to one of 70 user-facing resonance words, then let the released word determine the primary chakra while numerology supplies a light secondary prior. Use when an HAF daily-energy journey, visualization, test fixture, or course-recommendation workflow needs a reproducible word-to-chakra model; never present the result as a traditional formula, biological measurement, diagnosis, or treatment.
 ---
 
 # HAF Chakra Energy
 
-Use the bundled deterministic projection script. Describe it as the HAF reflective model, not as a traditional chakra calculation.
+Use the bundled deterministic word-resonance script. Describe it as the HAF reflective model, not as a traditional chakra calculation.
 
 ## Workflow
 
-1. Obtain a confirmed compass coordinate where `x=-1` is inward, `x=1` is outward, `y=-1` is calm, and `y=1` is active.
+1. Obtain the final normalized sensing position after the user releases their finger. The position is only an address in a hidden 7 × 10 word field; it has no inward/outward/calm/active meaning.
 2. Obtain `life_path` and `personal_day` from `$haf-numerology`.
 3. Run:
 
@@ -27,17 +27,19 @@ python3 scripts/project_chakra_energy.py \
 
 ## Model Rules
 
-- Use continuous coordinates; never reduce the compass to one of four hard labels.
-- Combine compass projection (45%), Life Path affinity (35%), and Personal Day affinity (20%).
+- Keep exactly ten unique resonance words for each of the seven chakra families.
+- Change the visible word only after the pointer enters another field cell; time alone must never rotate words.
+- Release locks the visible word, and that word's chakra is always primary.
+- Combine selected-word evidence (70%), Life Path affinity (20%), and Personal Day affinity (10%) for relative display scores and the supporting chakra.
 - Treat all seven scores as relative reflective signals, not measured energy.
 - Return a primary and secondary chakra. Avoid “blocked,” “damaged,” “healed,” or diagnostic language.
-- Do not claim that the compass mapping or the 0-100 scale appears in Tantric source texts.
+- Do not claim that the hidden word field or the 0-100 scale appears in Tantric source texts.
 - Change anchors or weights only by creating a new model version and new golden tests.
 
 ## References
 
 - Read [references/sources-and-model.md](references/sources-and-model.md) before changing the model or describing its historical basis.
-- Read [references/chakra-model.json](references/chakra-model.json) before changing anchors, affinities, labels, or weights.
+- Read [references/chakra-word-model.json](references/chakra-word-model.json) before changing words, field mapping, affinities, labels, or weights. `chakra-model.json` is retained only as the superseded four-pole model.
 - Run [scripts/test_project_chakra_energy.py](scripts/test_project_chakra_energy.py) after any change.
 
 ## Output Contract
@@ -46,7 +48,7 @@ Required fields:
 
 - `schema_version` and `model_version`
 - `input`
-- `compass.four_poles` and `compass.intensity`
+- `interaction.cell`, `interaction.selected_word`, and `interaction.selection_policy`
 - `chakras[]` with `score`, `rank`, and weighted `contributions`
 - `primary_chakra`, `secondary_chakra`, and `evidence_ids`
 - `disclaimer`

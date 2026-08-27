@@ -1,0 +1,155 @@
+{
+  "model_version": "haf.chakra-word-resonance.v0.2",
+  "field_version": "haf.chakra-word-field.v1",
+  "field": {
+    "columns": 7,
+    "rows": 10,
+    "chakra_stride": 3,
+    "row_stride": 2
+  },
+  "weights": {
+    "selected_word": 0.70,
+    "life_path": 0.20,
+    "personal_day": 0.10
+  },
+  "score": {
+    "floor": 20,
+    "span": 75
+  },
+  "chakra_order": ["root", "sacral", "solar_plexus", "heart", "throat", "third_eye", "crown"],
+  "chakras": {
+    "root": {
+      "zh": "海底轮",
+      "sanskrit": "Muladhara",
+      "themes": ["安定", "落地", "身体支持"],
+      "words": [
+        {"id": "root_ground", "display": "扎根", "keyword_id": "ground"},
+        {"id": "root_settle", "display": "安住", "keyword_id": "ground"},
+        {"id": "root_support", "display": "承托", "keyword_id": "care"},
+        {"id": "root_steady", "display": "稳住", "keyword_id": "ground"},
+        {"id": "root_safe", "display": "安全", "keyword_id": "ground"},
+        {"id": "root_solid", "display": "踏实", "keyword_id": "ground"},
+        {"id": "root_return", "display": "回身", "keyword_id": "care"},
+        {"id": "root_boundary", "display": "边界", "keyword_id": "strength"},
+        {"id": "root_place", "display": "归位", "keyword_id": "integrate"},
+        {"id": "root_composed", "display": "沉稳", "keyword_id": "ground"}
+      ]
+    },
+    "sacral": {
+      "zh": "生殖轮",
+      "sanskrit": "Svadhisthana",
+      "themes": ["流转", "感受", "创造"],
+      "words": [
+        {"id": "sacral_unfold", "display": "舒展", "keyword_id": "flow"},
+        {"id": "sacral_feel", "display": "感受", "keyword_id": "flow"},
+        {"id": "sacral_nourish", "display": "滋养", "keyword_id": "care"},
+        {"id": "sacral_joy", "display": "愉悦", "keyword_id": "flow"},
+        {"id": "sacral_create", "display": "创造", "keyword_id": "begin"},
+        {"id": "sacral_intimacy", "display": "亲密", "keyword_id": "connect"},
+        {"id": "sacral_soft", "display": "柔软", "keyword_id": "flow"},
+        {"id": "sacral_passion", "display": "热情", "keyword_id": "strength"},
+        {"id": "sacral_turn", "display": "流转", "keyword_id": "flow"},
+        {"id": "sacral_desire", "display": "渴望", "keyword_id": "begin"}
+      ]
+    },
+    "solar_plexus": {
+      "zh": "太阳神经丛",
+      "sanskrit": "Manipura",
+      "themes": ["边界", "选择", "行动"],
+      "words": [
+        {"id": "solar_courage", "display": "勇气", "keyword_id": "strength"},
+        {"id": "solar_decide", "display": "决断", "keyword_id": "strength"},
+        {"id": "solar_confidence", "display": "自信", "keyword_id": "strength"},
+        {"id": "solar_advance", "display": "推进", "keyword_id": "strength"},
+        {"id": "solar_initiative", "display": "主动", "keyword_id": "begin"},
+        {"id": "solar_breakthrough", "display": "突破", "keyword_id": "strength"},
+        {"id": "solar_responsibility", "display": "担当", "keyword_id": "strength"},
+        {"id": "solar_will", "display": "意志", "keyword_id": "strength"},
+        {"id": "solar_achieve", "display": "成就", "keyword_id": "strength"},
+        {"id": "solar_choose", "display": "选择", "keyword_id": "strength"}
+      ]
+    },
+    "heart": {
+      "zh": "心轮",
+      "sanskrit": "Anahata",
+      "themes": ["接纳", "共鸣", "给予与接收"],
+      "words": [
+        {"id": "heart_accept", "display": "接纳", "keyword_id": "connect"},
+        {"id": "heart_resonate", "display": "共鸣", "keyword_id": "connect"},
+        {"id": "heart_gentle", "display": "温柔", "keyword_id": "care"},
+        {"id": "heart_trust", "display": "信任", "keyword_id": "connect"},
+        {"id": "heart_affection", "display": "爱意", "keyword_id": "connect"},
+        {"id": "heart_include", "display": "包容", "keyword_id": "care"},
+        {"id": "heart_give", "display": "给予", "keyword_id": "care"},
+        {"id": "heart_receive", "display": "被爱", "keyword_id": "care"},
+        {"id": "heart_near", "display": "靠近", "keyword_id": "connect"},
+        {"id": "heart_forgive", "display": "原谅", "keyword_id": "release"}
+      ]
+    },
+    "throat": {
+      "zh": "喉轮",
+      "sanskrit": "Vishuddha",
+      "themes": ["真实", "倾听", "传达"],
+      "words": [
+        {"id": "throat_true", "display": "真实", "keyword_id": "express"},
+        {"id": "throat_listen", "display": "倾听", "keyword_id": "express"},
+        {"id": "throat_voice", "display": "发声", "keyword_id": "express"},
+        {"id": "throat_speak", "display": "说出", "keyword_id": "express"},
+        {"id": "throat_communicate", "display": "沟通", "keyword_id": "express"},
+        {"id": "throat_candid", "display": "坦诚", "keyword_id": "express"},
+        {"id": "throat_clarify", "display": "澄清", "keyword_id": "insight"},
+        {"id": "throat_convey", "display": "传递", "keyword_id": "express"},
+        {"id": "throat_respond", "display": "回应", "keyword_id": "connect"},
+        {"id": "throat_honest", "display": "诚实", "keyword_id": "express"}
+      ]
+    },
+    "third_eye": {
+      "zh": "眉心轮",
+      "sanskrit": "Ajna",
+      "themes": ["洞察", "辨识", "直觉"],
+      "words": [
+        {"id": "third_eye_inward", "display": "内观", "keyword_id": "insight"},
+        {"id": "third_eye_notice", "display": "察觉", "keyword_id": "insight"},
+        {"id": "third_eye_discern", "display": "辨识", "keyword_id": "insight"},
+        {"id": "third_eye_intuition", "display": "直觉", "keyword_id": "insight"},
+        {"id": "third_eye_see", "display": "看见", "keyword_id": "insight"},
+        {"id": "third_eye_clear", "display": "清明", "keyword_id": "insight"},
+        {"id": "third_eye_focus", "display": "专注", "keyword_id": "insight"},
+        {"id": "third_eye_understand", "display": "理解", "keyword_id": "insight"},
+        {"id": "third_eye_seek", "display": "求索", "keyword_id": "insight"},
+        {"id": "third_eye_perceive", "display": "洞悉", "keyword_id": "insight"}
+      ]
+    },
+    "crown": {
+      "zh": "顶轮",
+      "sanskrit": "Sahasrara",
+      "themes": ["意义", "空间", "整体感"],
+      "words": [
+        {"id": "crown_meaning", "display": "意义", "keyword_id": "insight"},
+        {"id": "crown_reverence", "display": "敬畏", "keyword_id": "insight"},
+        {"id": "crown_space", "display": "空间", "keyword_id": "release"},
+        {"id": "crown_awareness", "display": "觉知", "keyword_id": "insight"},
+        {"id": "crown_wholeness", "display": "合一", "keyword_id": "integrate"},
+        {"id": "crown_transcend", "display": "超越", "keyword_id": "release"},
+        {"id": "crown_stillness", "display": "宁静", "keyword_id": "integrate"},
+        {"id": "crown_belief", "display": "信念", "keyword_id": "strength"},
+        {"id": "crown_open", "display": "开阔", "keyword_id": "release"},
+        {"id": "crown_realize", "display": "领悟", "keyword_id": "insight"}
+      ]
+    }
+  },
+  "number_affinity": {
+    "1": {"root": 0.60, "sacral": 0.35, "solar_plexus": 0.95, "heart": 0.30, "throat": 0.45, "third_eye": 0.25, "crown": 0.20},
+    "2": {"root": 0.45, "sacral": 0.65, "solar_plexus": 0.30, "heart": 0.90, "throat": 0.45, "third_eye": 0.45, "crown": 0.30},
+    "3": {"root": 0.30, "sacral": 0.75, "solar_plexus": 0.50, "heart": 0.55, "throat": 0.95, "third_eye": 0.35, "crown": 0.25},
+    "4": {"root": 0.95, "sacral": 0.35, "solar_plexus": 0.65, "heart": 0.40, "throat": 0.30, "third_eye": 0.30, "crown": 0.20},
+    "5": {"root": 0.35, "sacral": 0.90, "solar_plexus": 0.60, "heart": 0.40, "throat": 0.75, "third_eye": 0.40, "crown": 0.30},
+    "6": {"root": 0.55, "sacral": 0.55, "solar_plexus": 0.35, "heart": 0.98, "throat": 0.45, "third_eye": 0.35, "crown": 0.40},
+    "7": {"root": 0.30, "sacral": 0.25, "solar_plexus": 0.30, "heart": 0.45, "throat": 0.40, "third_eye": 0.98, "crown": 0.82},
+    "8": {"root": 0.75, "sacral": 0.40, "solar_plexus": 0.98, "heart": 0.35, "throat": 0.50, "third_eye": 0.30, "crown": 0.25},
+    "9": {"root": 0.35, "sacral": 0.45, "solar_plexus": 0.35, "heart": 0.85, "throat": 0.45, "third_eye": 0.68, "crown": 0.90},
+    "11": {"root": 0.25, "sacral": 0.35, "solar_plexus": 0.35, "heart": 0.60, "throat": 0.50, "third_eye": 0.98, "crown": 0.92},
+    "22": {"root": 0.88, "sacral": 0.35, "solar_plexus": 0.92, "heart": 0.45, "throat": 0.45, "third_eye": 0.50, "crown": 0.55},
+    "33": {"root": 0.45, "sacral": 0.50, "solar_plexus": 0.35, "heart": 1.00, "throat": 0.58, "third_eye": 0.50, "crown": 0.72}
+  }
+}

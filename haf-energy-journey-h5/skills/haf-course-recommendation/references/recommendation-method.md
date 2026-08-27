@@ -17,12 +17,12 @@ Primary-chakra relevance is a contextual hard gate, not a soft score. Freshness 
 
 For `换一批`, exhaust unseen primary-matching courses first. If fewer than three unseen courses remain, recycle the oldest primary-matching courses while excluding the immediately previous batch whenever the matching pool is large enough. Relevance outranks novelty.
 
-## Base score v1
+## Base score v3
 
 ```text
-35% chakra match
-25% compass-pole match
+50% chakra match
 20% keyword match
+10% numerology support
 10% duration and intensity fit
 10% recency
 ```
@@ -34,10 +34,6 @@ For `换一批`, exhaust unseen primary-matching courses first. If fewer than th
 + 0.3 × secondary-chakra tag match
 ```
 
-### Compass match
-
-Average the current continuous weights for all `energy_poles` attached to the course. A course tagged `inward` and `calm` therefore fits according to the actual two values rather than a hard quadrant.
-
 ### Keyword match
 
 - Locked keyword match: 1.0
@@ -47,13 +43,19 @@ Average the current continuous weights for all `energy_poles` attached to the co
 
 Use the highest matching value.
 
+The locked visible word keeps its own display text while its declared canonical `keyword_id` bridges to the catalog tags.
+
+### Numerology support
+
+A course receives this support when its keyword tags include the separate Personal Day theme. Numerology never changes the primary chakra chosen by the user's word.
+
 ### Practice fit
 
-Infer only a gentle target practice intensity from the current active/calm mix:
+Infer only a gentle target practice intensity from the selected primary chakra:
 
-- calm dominant: low
-- active dominant: medium
-- active > 0.75 and outward > 0.65: high
+- root, third eye, or crown: low
+- sacral, heart, or throat: medium
+- solar plexus: high
 
 Combine intensity proximity with duration proximity. This is a product convenience hypothesis, not a health prescription.
 
@@ -77,7 +79,7 @@ Choose the strongest grounded signal in this order:
 
 1. locked keyword tag;
 2. primary chakra tag;
-3. dominant compass pole tag;
+3. user-selected word resonance;
 4. general practice fit.
 
 Append only the course's own `fit_statement`. Do not claim healing, guaranteed change, or outcomes missing from the catalog.

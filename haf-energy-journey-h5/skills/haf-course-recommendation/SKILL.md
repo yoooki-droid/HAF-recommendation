@@ -1,6 +1,6 @@
 ---
 name: haf-course-recommendation
-description: Select exactly three published HAF courses from a normalized catalog using a validated daily-energy insight, deterministic chakra, compass, keyword, practice-fit, recency, and diversity scoring, with grounded current-energy fit reasons and a full score trace. Use for HAF demo recommendations, result-page course cards, QA fixtures, or future course API integration; do not invent course benefits, prices, availability, or content absent from the catalog.
+description: Select exactly three published HAF courses from a normalized catalog using a validated daily-energy insight, user-selected chakra word, primary/secondary chakra, numerology, practice-fit, recency, and diversity scoring, with grounded current-energy fit reasons and a full score trace. Use for HAF demo recommendations, result-page course cards, QA fixtures, or future course API integration; do not invent course benefits, prices, availability, or content absent from the catalog.
 ---
 
 # HAF Course Recommendation
@@ -25,9 +25,9 @@ python3 scripts/recommend_courses.py \
 
 ## Rules
 
-- Score chakra match, continuous compass-pole match, keyword match, practice fit, and recency with the versioned weights.
+- Score primary/secondary chakra match, selected-word keyword bridge, numerology support, practice fit, and recency with the versioned weights.
 - Apply a transparent diversity penalty so the final three do not all have the same modality or first chakra tag.
-- Build reasons only from the locked energy insight and each course's `fit_statement` and tags.
+- Build reasons only from the user-locked word, its primary chakra, the daily theme, and each course's `fit_statement` and tags.
 - Keep `今日` for the daily numerology/energy source, but phrase course relevance as `此刻契合`. Do not imply the course must be taken today or becomes unsuitable tomorrow; saving it can preserve a current resonance for later.
 - Keep the exact count of three as a retrieval invariant, not as the main user-facing headline. In the H5 narrative, introduce the set as `此刻与你契合的体验`, and refer to an item with a natural modality phrase such as `这段冥想练习` or `这场声音体验`, not the catalog-like `3 节课` or generic `这节课`.
 - Never let a language model add an unsupported benefit or choose a course outside the eligible candidate set.

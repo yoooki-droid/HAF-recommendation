@@ -41,53 +41,47 @@ class EnergySynthesisTests(unittest.TestCase):
         )
         return numerology, chakra
 
-    def test_day_nine_is_background_while_inward_calm_selects_insight(self) -> None:
+    def test_selected_word_becomes_moment_and_primary_chakra(self) -> None:
         numerology, chakra = self.build_release_example()
         result = SYNTHESIS.synthesize(numerology, chakra)
-        self.assertEqual(result["keyword"]["display"], "照见")
+        selected = chakra["interaction"]["selected_word"]
+        self.assertEqual(result["keyword"]["display"], selected["display"])
+        self.assertEqual(result["moment_keyword"]["word_id"], selected["id"])
+        self.assertEqual(result["primary_chakra"]["id"], selected["chakra_id"])
         self.assertEqual(result["daily_theme"]["display"], "放下")
-        self.assertEqual(result["composite_title"], "照见 · 放下")
-        self.assertEqual(result["direction"]["horizontal"]["label"], "向内求索")
-        self.assertEqual(result["direction"]["vertical"]["label"], "安静整合")
-        self.assertIn("眉心轮", result["energy_summary"])
+        self.assertEqual(result["composite_title"], f"{selected['display']} · 放下")
+        self.assertEqual(result["selection_policy"], "user_selected_chakra_word")
+        self.assertIn(selected["display"], result["energy_summary"])
 
-    def test_same_numerology_changes_keyword_across_compass(self) -> None:
+    def test_same_numerology_changes_word_across_field_positions(self) -> None:
         numerology = NUMEROLOGY.calculate_profile("1990-10-12", "2020-03-16")
-        positions = {
-            "inward_calm": (-0.88, -0.88),
-            "outward_calm": (0.88, -0.88),
-            "center": (0.0, 0.0),
-            "inward_active": (-0.88, 0.88),
-            "outward_active": (0.88, 0.88),
-        }
-        keywords = set()
-        for x, y in positions.values():
-            chakra = CHAKRA.project(
-                x,
-                y,
-                numerology["life_path"]["value"],
-                numerology["personal_cycle"]["personal_day"],
-            )
-            keywords.add(SYNTHESIS.synthesize(numerology, chakra)["keyword"]["display"])
-        self.assertGreaterEqual(len(keywords), 4)
+        words = set()
+        for row in range(10):
+            for column in range(7):
+                x = (column + 0.5) / 7 * 2 - 1
+                y = (row + 0.5) / 10 * 2 - 1
+                chakra = CHAKRA.project(
+                    x,
+                    y,
+                    numerology["life_path"]["value"],
+                    numerology["personal_cycle"]["personal_day"],
+                )
+                words.add(SYNTHESIS.synthesize(numerology, chakra)["keyword"]["display"])
+        self.assertEqual(len(words), 70)
 
-    def test_outward_active_strength_signals_select_strength_when_daily_theme_differs(self) -> None:
-        numerology = NUMEROLOGY.calculate_profile("1990-08-12", "2026-08-22")
-        numerology["life_path"]["value"] = 1
-        numerology["personal_cycle"]["personal_day"] = 3
-        chakra = CHAKRA.project(0.82, 0.78, 1, 3)
-        result = SYNTHESIS.synthesize(numerology, chakra)
-        self.assertEqual(result["keyword"]["display"], "力量")
-
-    def test_moment_keyword_never_repeats_daily_theme(self) -> None:
+    def test_daily_theme_word_is_not_in_sensing_word_bank(self) -> None:
         numerology = NUMEROLOGY.calculate_profile("1990-08-12", "2026-08-22")
         for personal_day in range(1, 10):
             numerology["life_path"]["value"] = 8
             numerology["personal_cycle"]["personal_day"] = personal_day
-            chakra = CHAKRA.project(0.82, 0.78, 8, personal_day)
+            chakra = CHAKRA.project(
+                0.82,
+                0.78,
+                8,
+                personal_day,
+            )
             result = SYNTHESIS.synthesize(numerology, chakra)
-            self.assertNotEqual(result["keyword"]["id"], result["daily_theme"]["id"])
-            self.assertEqual(result["selection_policy"], "moment_excludes_daily_theme")
+            self.assertNotEqual(result["keyword"]["display"], result["daily_theme"]["display"])
             self.assertNotEqual(result["composite_title"].split(" · ")[0], result["composite_title"].split(" · ")[1])
 
     def test_input_mismatch_is_rejected(self) -> None:
