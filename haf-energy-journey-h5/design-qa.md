@@ -1,6 +1,6 @@
 # Design QA
 
-- Source visual truth: `/Users/at_lp007/Documents/HAF_miniapp/ref/iPhone 16 - 5.png`, `/Users/at_lp007/Documents/HAF_miniapp/ref/iPhone 16 - 6.png`, `/Users/at_lp007/Documents/HAF_miniapp/ref/result-card-compact-ios-buffer.png`, `/Users/at_lp007/Documents/HAF_miniapp/ref/result-saved-spacing-rounded-card.png`, Figma Octave node `10578:5067`, and the accepted sensing baseline `qa/word-resonance-v4-2026-08-27/01-position-selected-word.png`.
+- Source visual truth: `/Users/at_lp007/Documents/HAF_miniapp/ref/iPhone 16 - 5.png`, `/Users/at_lp007/Documents/HAF_miniapp/ref/iPhone 16 - 6.png`, `/Users/at_lp007/Documents/HAF_miniapp/ref/result-card-compact-ios-buffer.png`, `/Users/at_lp007/Documents/HAF_miniapp/ref/result-saved-spacing-rounded-card.png`, Figma Octave node `10578:5067`, the accepted sensing baseline `qa/word-resonance-v4-2026-08-27/01-position-selected-word.png`, and the user-marked orb crop `qa/word-resonance-v4-2026-08-27/04-orb-color-before.png`.
 - Implementation: local HAF mobile prototype at `http://127.0.0.1:4173/`.
 - Intended viewport: full-screen app-owned 393 × 852 mobile view inside the protected iPhone runtime. Backgrounds paint behind the status bar and home indicator; readable controls keep safe-area clearance.
 - Source pixels: primary screen references 786 × 1704; focused result references 718 × 536 and 760 × 690; Figma export 786 × 1704.
@@ -19,6 +19,7 @@
 - Pass 8: replayed the reported `太阳神经丛` result as a recommendation regression fixture. All five three-course batches stayed inside the seven-course primary-chakra pool, exhausted every matching course before recycling, and never repeated a course from the immediately previous batch. A course tagged only for `海底轮` is no longer eligible in this state.
 - Pass 9: replaced exact birth-clock values with four time-of-day intervals (`早上`, `中午`, `下午`, `晚上`) plus `不确定`. Verified the full cycle and automatic migration of a legacy `23:23` value to `不确定`.
 - Pass 10: compared the accepted sensing baseline and the revised in-app Browser capture `qa/word-resonance-v4-2026-08-27/02-slow-word-emergence.png` together. The settled composition, typography, background, orb, and lower copy remain unchanged. Live computed-style sampling confirmed the selected word progresses from partial opacity/blur/scale to fully resolved over roughly 1.1 seconds; outgoing words clear in 0.24 seconds without a waiting queue, and `完成感应` now waits for the word to resolve. The browser captures are both 594 × 757 pixels at the same in-app Browser canvas size; the previously approved 393 × 852 app-viewport captures remain the 1:1 layout evidence. No focused still-image crop was needed because this pass changed only temporal easing, and the full-view comparison kept the complete affected region legible.
+- Pass 11: compared the 182 × 176 user-marked orb crop with the 184 × 184 focused implementation crop `qa/word-resonance-v4-2026-08-27/06-paler-sensing-orb-crop.jpg` in one visual input, then checked the full in-app Browser view `qa/word-resonance-v4-2026-08-27/05-paler-sensing-orb-full.jpg`. The orb keeps the same real raster asset, 68px CSS size, pointer position, and responsive scale. Saturation is reduced to .76, contrast to .94, and both halo alpha values are softened; the blue-orange reading remains visible but no longer competes with the background. Typography, spacing/layout rhythm, surrounding color field, source image sharpness, and copy are unchanged. No P0/P1/P2 regression was found.
 
 ## Final findings
 
@@ -51,5 +52,6 @@
 - Birth-time intervals and legacy exact-time migration — passed.
 - Sensing word reveal: sampled at 0.39 opacity / 6.69px blur during emergence and 1 opacity / 0px blur after settling — passed.
 - Locked action reveal waits 1.25 seconds so it follows the word instead of interrupting it — passed.
+- Sensing orb color: pastel blue-orange core with reduced white/blue halo, unchanged 68 × 68 CSS geometry and interaction response — passed.
 
 final result: passed
