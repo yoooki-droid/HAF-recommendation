@@ -710,6 +710,7 @@ function buildCourseFitReason(
 function recommendCourses(
   insight: EnergyInsight,
   recentIds: Set<string>,
+  sessionIds: Set<string>,
   lifePath: number,
   dayNumber: number,
   dateKey: string,
@@ -721,16 +722,24 @@ function recommendCourses(
     course.chakra_tags.includes(insight.primaryChakra.id)
   ));
   const recentCourseIds = [...recentIds];
-  const lastShownIds = new Set(recentCourseIds.slice(-3));
-  const freshCourses = primaryChakraCourses.filter((course) => !recentIds.has(course.course_id));
+  const sessionCourseIds = [...sessionIds];
+  const lastShownIds = new Set((sessionCourseIds.length ? sessionCourseIds : recentCourseIds).slice(-3));
   const recentOrder = new Map([...recentIds].map((id, index) => [id, index]));
-  const rolloverCourses = primaryChakraCourses
-    .filter((course) => recentIds.has(course.course_id) && !lastShownIds.has(course.course_id))
+  const globallyFreshCourses = primaryChakraCourses.filter((course) => (
+    !sessionIds.has(course.course_id) && !recentIds.has(course.course_id)
+  ));
+  const globallySeenButNewToSession = primaryChakraCourses
+    .filter((course) => !sessionIds.has(course.course_id) && recentIds.has(course.course_id))
     .sort((a, b) => (recentOrder.get(a.course_id) ?? 0) - (recentOrder.get(b.course_id) ?? 0));
+  const newToSessionCourses = [...globallyFreshCourses, ...globallySeenButNewToSession];
+  const sessionOrder = new Map(sessionCourseIds.map((id, index) => [id, index]));
+  const sessionRolloverCourses = primaryChakraCourses
+    .filter((course) => sessionIds.has(course.course_id) && !lastShownIds.has(course.course_id))
+    .sort((a, b) => (sessionOrder.get(a.course_id) ?? 0) - (sessionOrder.get(b.course_id) ?? 0));
   const immediateRepeatCourses = primaryChakraCourses.filter((course) => lastShownIds.has(course.course_id));
-  const nonImmediateCandidates = [...freshCourses, ...rolloverCourses];
-  const candidateCourses = freshCourses.length >= 3
-    ? freshCourses
+  const nonImmediateCandidates = [...newToSessionCourses, ...sessionRolloverCourses];
+  const candidateCourses = newToSessionCourses.length >= 3
+    ? newToSessionCourses
     : nonImmediateCandidates.length >= 3
       ? nonImmediateCandidates
       : [...nonImmediateCandidates, ...immediateRepeatCourses];
@@ -805,6 +814,13 @@ function appendCourseHistory(history: Iterable<string>, courseIds: string[]) {
   const currentIds = new Set(courseIds);
   const next = [...[...history].filter((id) => !currentIds.has(id)), ...courseIds];
   return next.slice(-activeCourses.length);
+}
+
+function recommendationBatchLimit(insight: EnergyInsight) {
+  const relevantCourseCount = activeCourses.filter((course) => (
+    course.chakra_tags.includes(insight.primaryChakra.id)
+  )).length;
+  return Math.min(4, Math.max(1, Math.ceil(relevantCourseCount / 3)));
 }
 
 function loadLocal<T>(key: string, fallback: T): T {
@@ -1592,9 +1608,12 @@ function ResultScreen() {
   const energyReading = loadLocal(readingCacheKey, insight.energySummary);
   const [batch, setBatch] = useState(0);
   const [recentCourseIds, setRecentCourseIds] = useState(() => new Set(loadLocal<string[]>(recentCourseStorageKey, [])));
+  const [sessionCourseIds, setSessionCourseIds] = useState<string[]>([]);
+  const maxRecommendationBatches = useMemo(() => recommendationBatchLimit(insight), [insight]);
+  const recommendationLimitReached = batch + 1 >= maxRecommendationBatches;
   const orderedCourses = useMemo(
-    () => recommendCourses(insight, recentCourseIds, lifePath, dayNumber, `${dateKey}:batch-${batch}`),
-    [insight, recentCourseIds, lifePath, dayNumber, dateKey, batch],
+    () => recommendCourses(insight, recentCourseIds, new Set(sessionCourseIds), lifePath, dayNumber, `${dateKey}:batch-${batch}`),
+    [insight, recentCourseIds, sessionCourseIds, lifePath, dayNumber, dateKey, batch],
   );
 
   useEffect(() => {
@@ -1604,7 +1623,13 @@ function ResultScreen() {
 
   const refreshCourses = () => {
     setRecentCourseIds((previous) => new Set(appendCourseHistory(previous, orderedCourses.map((course) => course.id))));
+    setSessionCourseIds((previous) => appendCourseHistory(previous, orderedCourses.map((course) => course.id)));
     setBatch((value) => value + 1);
+  };
+
+  const resense = () => {
+    startSensingAudio(dateKey);
+    flow.pop();
   };
 
   return (
@@ -1661,9 +1686,12 @@ function ResultScreen() {
               <BookmarkIcon />
               {favorites.length > 0 && <span>{favorites.length}</span>}
             </button>
-            <button className="result-refresh" onClick={refreshCourses}>换一批</button>
+            <button
+              className={`result-refresh ${recommendationLimitReached ? "result-refresh-resense" : ""}`}
+              onClick={recommendationLimitReached ? resense : refreshCourses}
+            >{recommendationLimitReached ? "重新感应" : "换一批"}</button>
           </div>
-          <button className="result-resense" onClick={() => { startSensingAudio(dateKey); flow.pop(); }}>重新感应</button>
+          {!recommendationLimitReached && <button className="result-resense" onClick={resense}>重新感应</button>}
         </footer>
       </div>
     </EmbeddedScreen>

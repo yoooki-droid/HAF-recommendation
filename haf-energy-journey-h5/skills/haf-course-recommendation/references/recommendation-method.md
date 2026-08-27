@@ -15,7 +15,9 @@ Include a course only when:
 
 Primary-chakra relevance is a contextual hard gate, not a soft score. Freshness and diversity may reorder courses only inside that relevant pool; they may never introduce a course tagged only for another chakra. Favorites remain eligible. A user may want to revisit a saved course. Recently shown courses receive a novelty reduction but are not automatically removed.
 
-For `换一批`, exhaust unseen primary-matching courses first. If fewer than three unseen courses remain, recycle the oldest primary-matching courses while excluding the immediately previous batch whenever the matching pool is large enough. Relevance outranks novelty.
+For `换一批`, exhaust primary-matching courses not yet shown in the current result session first, even if they appeared in an older reading. If fewer than three session-unseen courses remain, recycle the oldest primary-matching courses while excluding the immediately previous batch whenever the matching pool is large enough. Relevance outranks novelty.
+
+The result-page refresh control is finite. Derive its batch limit from the eligible primary-chakra pool (`ceil(pool / 3)`), capped at four batches. After the final useful batch, replace `换一批` with the primary action `重新感应` and hide the duplicate secondary re-sensing action. This prevents endless recycling while keeping exactly three cards in every displayed batch.
 
 ## Base score v3
 
