@@ -1,7 +1,7 @@
 # HAF 探索本心：接口契约
 
-版本：v3.0 Demo  
-日期：2026-08-23
+版本：v4.0 Demo
+日期：2026-08-27
 
 ## 1. 通用规则
 
@@ -55,11 +55,11 @@
   "date_key": "2026-08-23",
   "personal_day": 1,
   "daily_theme": "开始",
-  "moment_keyword": "照见",
-  "compass": {
-    "horizontal": "向内求索",
-    "vertical": "安静整合",
-    "intensity": "清晰"
+  "moment_keyword": "看见",
+  "resonance": {
+    "selected_word_id": "third_eye_04",
+    "selected_word": "看见",
+    "selected_chakra": "眉心轮"
   },
   "chakras": {
     "primary": {"name": "眉心轮", "themes": ["洞察", "辨识"]},
@@ -79,7 +79,7 @@
 }
 ```
 
-前端只接受 18–50 个字符；否则使用请求中的本地规则结果。
+前端只接受 18–50 个字符；否则使用请求中的本地规则结果。`resonance` 来自用户松手锁定的 70 词感应场，后端不得再要求或推断旧版罗盘方向字段。
 
 ## 4. 埋点
 
@@ -137,4 +137,3 @@
 ## 7. 正式收藏接口（待提供）
 
 请求至少包含用户 ID、课程 ID、来源和幂等请求 ID。只有服务端确认成功后，前端才显示“已收藏”并记录收藏事件。
-

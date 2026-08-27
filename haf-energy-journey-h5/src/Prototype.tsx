@@ -643,7 +643,7 @@ function dailyGreetingCacheKey(dateKey: string, dayNumber: number, lifePath: num
 }
 
 function energyReadingCacheKey(dateKey: string, dayNumber: number, insight: EnergyInsight) {
-  return `haf-energy-reading:v4:${dateKey}:${dayNumber}:${insight.selectedWord.id}:${insight.primaryChakra.id}:${insight.secondaryChakra.id}`;
+  return `haf-energy-reading:v5:${dateKey}:${dayNumber}:${insight.selectedWord.id}:${insight.primaryChakra.id}:${insight.secondaryChakra.id}`;
 }
 
 async function requestJson<T>(endpoint: string, payload: Record<string, unknown>): Promise<T | null> {

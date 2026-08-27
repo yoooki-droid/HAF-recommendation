@@ -107,15 +107,29 @@ function textLength(value) {
 function validReadingRequest(body) {
   return body
     && typeof body.user_key === "string"
+    && body.user_key.length <= 128
     && /^\d{4}-\d{2}-\d{2}$/.test(body.date_key || "")
     && Number.isInteger(body.personal_day)
+    && body.personal_day >= 1
+    && body.personal_day <= 9
     && typeof body.daily_theme === "string"
+    && textLength(body.daily_theme) <= 24
     && typeof body.moment_keyword === "string"
-    && typeof body.compass?.horizontal === "string"
-    && typeof body.compass?.vertical === "string"
-    && typeof body.compass?.intensity === "string"
+    && textLength(body.moment_keyword) <= 16
+    && typeof body.resonance?.selected_word_id === "string"
+    && body.resonance.selected_word_id.length <= 64
+    && typeof body.resonance?.selected_word === "string"
+    && textLength(body.resonance.selected_word) <= 16
+    && typeof body.resonance?.selected_chakra === "string"
+    && textLength(body.resonance.selected_chakra) <= 16
     && typeof body.chakras?.primary?.name === "string"
-    && typeof body.chakras?.secondary?.name === "string";
+    && Array.isArray(body.chakras.primary.themes)
+    && body.chakras.primary.themes.length <= 4
+    && body.chakras.primary.themes.every((item) => typeof item === "string" && textLength(item) <= 16)
+    && typeof body.chakras?.secondary?.name === "string"
+    && Array.isArray(body.chakras.secondary.themes)
+    && body.chakras.secondary.themes.length <= 4
+    && body.chakras.secondary.themes.every((item) => typeof item === "string" && textLength(item) <= 16);
 }
 
 function validGreetingRequest(body) {
@@ -143,11 +157,11 @@ function readingCacheKey(body) {
     body.personal_day,
     body.daily_theme,
     body.moment_keyword,
-    body.compass.horizontal,
-    body.compass.vertical,
-    body.compass.intensity,
+    body.resonance.selected_word_id,
+    body.resonance.selected_chakra,
     body.chakras.primary.name,
     body.chakras.secondary.name,
+    "energy-reading-v4",
   ].join(":");
 }
 
@@ -233,11 +247,11 @@ async function generateEnergyReading(body) {
         messages: [
           {
             role: "system",
-            content: "你是HAF探索本心模块的中文编辑。根据已计算的事实写一条有洞察的今日能量解读。不是算命断言，不做医学或心理诊断，不复述用户已经看到的标签，不提灵数、脉轮、罗盘等术语。捕捉这些线索背后的内在张力，给出一句温柔但具体的提醒。总长度18到50个中文字符，最多两句。只输出json，格式示例：{\"reading\":\"你真正想说的，不是答案，而是希望自己的感受被认真听见。\"}",
+            content: "你是HAF探索本心模块的中文编辑。根据上游已经计算完成的象征性事实，写一条有灵性气质、温暖而有力量的当下解读。像一位可靠的同行者：看见内在张力，也给出具体支点；可以克制地使用光、呼吸、边界、方向等意象，但不堆叠空泛的能量、宇宙、命定话术。不是算命断言，不做医学或心理诊断，不复述用户已经看到的标签，不提灵数、脉轮、算法或测算等术语，不新增输入之外的经历与因果。总长度18到50个中文字符，最多两句。只输出json，格式示例：{\"reading\":\"真正的力量不是急着证明，而是在纷扰里仍能守住自己的选择。\"}",
           },
           {
             role: "user",
-            content: `请输出json。日期：${body.date_key}；今日主题：${body.daily_theme}；此刻关键词：${body.moment_keyword}；方向：${body.compass.horizontal}、${body.compass.vertical}；强度：${body.compass.intensity}；主要能量：${body.chakras.primary.name}（${body.chakras.primary.themes.join("、")}）；辅助能量：${body.chakras.secondary.name}（${body.chakras.secondary.themes.join("、")}）。不要复述这些标签。`,
+            content: `请输出json。日期：${body.date_key}；今日主旋律：${body.daily_theme}；用户松手锁定的当下共鸣词：${body.resonance.selected_word}；这个词对应的主要能量：${body.chakras.primary.name}（${body.chakras.primary.themes.join("、")}）；辅助能量：${body.chakras.secondary.name}（${body.chakras.secondary.themes.join("、")}）。保持用户选择的词与主要能量事实不变，不要在成文中直接复述这些标签。`,
           },
         ],
         response_format: { type: "json_object" },
