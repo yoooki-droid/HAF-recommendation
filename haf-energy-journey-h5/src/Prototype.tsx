@@ -210,6 +210,134 @@ const activeCourses = historicalCourses.filter((course) => (
 ));
 const favoriteStorageKey = "haf-journey-favorites:2025-validation-v1";
 const recentCourseStorageKey = "haf-journey-recent-courses:2025-validation-v1";
+const sensingIntroStorageKey = "haf-sensing-intro-date:v6";
+const sensingMusicUrl = "/assets/haf/sensing/haf-fingertip-energy-flow-suno-mobile-v1.m4a";
+const sensingGuideUrl = "/assets/haf/sensing/meditation-guide-haf-chenguang-v1.mp3";
+type SensingGuideStatus = "idle" | "playing" | "ended" | "error";
+type SensingAudioSession = {
+  dateKey: string;
+  music: HTMLAudioElement;
+  guide: HTMLAudioElement;
+  introFinished: boolean;
+  guideStatus: SensingGuideStatus;
+  guideStartTimer: number | null;
+  musicFadeFrame: number | null;
+  listeners: Set<(ready: boolean, status: SensingGuideStatus) => void>;
+};
+let sensingAudioSession: SensingAudioSession | null = null;
+
+function hasHeardSensingIntro(dateKey: string) {
+  return typeof window !== "undefined" && window.localStorage.getItem(sensingIntroStorageKey) === dateKey;
+}
+
+function notifySensingIntro(session: SensingAudioSession) {
+  session.listeners.forEach((listener) => listener(session.introFinished, session.guideStatus));
+}
+
+function clearSensingGuideTimer(session: SensingAudioSession) {
+  if (session.guideStartTimer !== null) window.clearTimeout(session.guideStartTimer);
+  session.guideStartTimer = null;
+}
+
+function fadeSensingMusic(session: SensingAudioSession, target: number, durationMs: number) {
+  if (session.musicFadeFrame !== null) window.cancelAnimationFrame(session.musicFadeFrame);
+  const startedAt = performance.now();
+  const initial = session.music.volume;
+  const step = (now: number) => {
+    const progress = Math.min(1, (now - startedAt) / durationMs);
+    const eased = 1 - (1 - progress) ** 3;
+    session.music.volume = initial + (target - initial) * eased;
+    session.musicFadeFrame = progress < 1 ? window.requestAnimationFrame(step) : null;
+  };
+  session.musicFadeFrame = window.requestAnimationFrame(step);
+}
+
+function stopSensingAudio() {
+  const session = sensingAudioSession;
+  if (!session) return;
+  if (session.musicFadeFrame !== null) window.cancelAnimationFrame(session.musicFadeFrame);
+  session.musicFadeFrame = null;
+  clearSensingGuideTimer(session);
+  session.music.pause();
+  session.guide.pause();
+}
+
+function startSensingAudio(dateKey: string) {
+  const heardToday = hasHeardSensingIntro(dateKey);
+  if (!sensingAudioSession || sensingAudioSession.dateKey !== dateKey) {
+    sensingAudioSession?.music.remove();
+    sensingAudioSession?.guide.remove();
+    stopSensingAudio();
+    const music = new Audio(sensingMusicUrl);
+    const guide = new Audio(sensingGuideUrl);
+    music.className = "sensing-music-audio";
+    guide.className = "sensing-guide-audio";
+    music.setAttribute("aria-hidden", "true");
+    guide.setAttribute("aria-hidden", "true");
+    music.preload = "none";
+    music.loop = true;
+    guide.preload = "auto";
+    document.body.append(music, guide);
+    sensingAudioSession = {
+      dateKey,
+      music,
+      guide,
+      introFinished: heardToday,
+      guideStatus: heardToday ? "ended" : "idle",
+      guideStartTimer: null,
+      musicFadeFrame: null,
+      listeners: new Set(),
+    };
+  }
+
+  const session = sensingAudioSession;
+  session.introFinished = heardToday;
+  session.guideStatus = heardToday ? "ended" : "idle";
+  notifySensingIntro(session);
+  session.music.currentTime = 0;
+  session.music.volume = 0;
+  void session.music.play().then(() => {
+    fadeSensingMusic(session, heardToday ? .18 : .1, 2200);
+  }).catch(() => { /* The voice remains the primary cue if music streaming is delayed. */ });
+
+  if (heardToday) {
+    return session;
+  }
+
+  session.guide.currentTime = 0;
+  session.guide.volume = .88;
+  session.guide.onended = () => {
+    clearSensingGuideTimer(session);
+    session.guideStatus = "ended";
+    session.introFinished = true;
+    window.localStorage.setItem(sensingIntroStorageKey, dateKey);
+    fadeSensingMusic(session, .18, 1200);
+    notifySensingIntro(session);
+  };
+  session.guide.onerror = () => {
+    clearSensingGuideTimer(session);
+    session.guideStatus = "error";
+    notifySensingIntro(session);
+  };
+  clearSensingGuideTimer(session);
+  session.guideStartTimer = window.setTimeout(() => {
+    if (session.guideStatus !== "idle") return;
+    session.guideStatus = "error";
+    notifySensingIntro(session);
+  }, 4000);
+  void session.guide.play().then(() => {
+    clearSensingGuideTimer(session);
+    session.guideStatus = "playing";
+    window.localStorage.setItem(sensingIntroStorageKey, dateKey);
+    notifySensingIntro(session);
+  }).catch(() => {
+    clearSensingGuideTimer(session);
+    session.guideStatus = "error";
+    notifySensingIntro(session);
+  });
+  return session;
+}
+
 const analyticsEndpoint = import.meta.env.VITE_HAF_ANALYTICS_ENDPOINT ?? "http://localhost:4174/api/events";
 const readingEndpoint = import.meta.env.VITE_HAF_READING_ENDPOINT ?? "http://localhost:4174/api/energy-reading";
 const greetingEndpoint = import.meta.env.VITE_HAF_GREETING_ENDPOINT ?? "http://localhost:4174/api/daily-greeting";
@@ -952,7 +1080,7 @@ function ReturnGreetingScreen() {
           <p>{dailyBody}</p>
         </motion.div>
         <div className="return-action">
-          <GlowButton onClick={() => flow.replace(makeScreen("compass"))}>开始今日感应</GlowButton>
+          <GlowButton onClick={() => { startSensingAudio(dateKey); flow.replace(makeScreen("compass")); }}>开始今日感应</GlowButton>
           <p className="return-note">每一次靠近自己，都是新的开始。</p>
         </div>
       </div>
@@ -987,7 +1115,7 @@ function WelcomeScreen() {
 
 function ProfileScreen() {
   const flow = useFlow();
-  const { profile, setProfile, completeOnboarding } = useJourney();
+  const { profile, setProfile, completeOnboarding, dateKey } = useJourney();
   const genderOptions = ["女性", "男性", "不设限"];
   const daysInMonth = (year: number, month: number) => new Date(year, month, 0).getDate();
   const adjust = (field: keyof Profile["birth"], amount: number) => {
@@ -1056,7 +1184,7 @@ function ProfileScreen() {
             autoComplete="address-level2"
           />
         </section>
-        <GlowButton onClick={() => { completeOnboarding(); flow.push(makeScreen("compass")); }}>开启今日探索</GlowButton>
+        <GlowButton onClick={() => { completeOnboarding(); startSensingAudio(dateKey); flow.push(makeScreen("compass")); }}>开启今日探索</GlowButton>
       </div>
     </EmbeddedScreen>
   );
@@ -1208,6 +1336,12 @@ function CompassScreen() {
   const [currentInsight, setCurrentInsight] = useState(initialInsight);
   const [readyToComplete, setReadyToComplete] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [introReady, setIntroReady] = useState(() => (
+    sensingAudioSession?.dateKey === dateKey ? sensingAudioSession.introFinished : hasHeardSensingIntro(dateKey)
+  ));
+  const [introAudioStatus, setIntroAudioStatus] = useState<SensingGuideStatus>(() => (
+    sensingAudioSession?.dateKey === dateKey ? sensingAudioSession.guideStatus : hasHeardSensingIntro(dateKey) ? "ended" : "idle"
+  ));
   const [cursor, setCursor] = useState<SensingCursor>({
     x: 196,
     y: 448,
@@ -1220,59 +1354,36 @@ function CompassScreen() {
   const livePointRef = useRef(point);
   const sessionRef = useRef({ start: 0, lastTime: 0, lastX: 196, lastY: 448, revealX: 196, revealY: 448, cellKey: "" });
   const soundEnabledRef = useRef(true);
-  const guideAudioRef = useRef<HTMLAudioElement | null>(null);
-  const musicAudioRef = useRef<HTMLAudioElement | null>(null);
-  const guideStartedRef = useRef(false);
-  const musicStartedRef = useRef(false);
-  const guidePlayingRef = useRef(false);
 
-  const playMusic = () => {
-    const music = musicAudioRef.current;
-    if (!music || !soundEnabledRef.current) return;
-    if (!musicStartedRef.current) {
-      musicStartedRef.current = true;
-      music.currentTime = 0;
+  useEffect(() => {
+    const session = sensingAudioSession;
+    if (!session || session.dateKey !== dateKey) {
+      setIntroReady(hasHeardSensingIntro(dateKey));
+      setIntroAudioStatus(hasHeardSensingIntro(dateKey) ? "ended" : "idle");
+      return undefined;
     }
-    const guide = guideAudioRef.current;
-    music.volume = guidePlayingRef.current || (guideStartedRef.current && guide && !guide.ended) ? .1 : .18;
-    void music.play().catch(() => {
-      if (music.currentTime === 0) musicStartedRef.current = false;
-    });
-  };
-
-  const playGuide = () => {
-    const guide = guideAudioRef.current;
-    if (!guide || !soundEnabledRef.current || guideStartedRef.current) return;
-    guideStartedRef.current = true;
-    guide.currentTime = 0;
-    guide.volume = .88;
-    void guide.play().catch(() => {
-      guideStartedRef.current = false;
-      guidePlayingRef.current = false;
-    });
-  };
+    const receiveReadyState = (ready: boolean, status: SensingGuideStatus) => {
+      setIntroReady(ready);
+      setIntroAudioStatus(status);
+    };
+    setIntroReady(session.introFinished);
+    setIntroAudioStatus(session.guideStatus);
+    session.listeners.add(receiveReadyState);
+    return () => { session.listeners.delete(receiveReadyState); };
+  }, [dateKey]);
 
   const toggleSound = () => {
+    if (!introReady) return;
     const next = !soundEnabledRef.current;
     soundEnabledRef.current = next;
     setSoundEnabled(next);
-    if (next) {
-      if (phase !== "idle" || musicStartedRef.current) playMusic();
-      if (phase !== "idle" && !guideStartedRef.current) playGuide();
-      const guide = guideAudioRef.current;
-      if (guideStartedRef.current && guide && !guide.ended) {
-        void guide.play().catch(() => { guidePlayingRef.current = false; });
-      }
-      return;
-    }
-    guideAudioRef.current?.pause();
-    musicAudioRef.current?.pause();
+    const session = sensingAudioSession;
+    if (!session) return;
+    if (next) void session.music.play();
+    else session.music.pause();
   };
 
-  useEffect(() => () => {
-    guideAudioRef.current?.pause();
-    musicAudioRef.current?.pause();
-  }, []);
+  useEffect(() => () => stopSensingAudio(), []);
 
   const updateGesture = (event: ReactPointerEvent<HTMLDivElement>, forceReveal = false) => {
     const bounds = event.currentTarget.getBoundingClientRect();
@@ -1337,15 +1448,19 @@ function CompassScreen() {
   }, [phase, prefersReducedMotion]);
 
   const beginSensing = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!introReady) return;
     event.preventDefault();
+    const audioSession = sensingAudioSession;
+    if (soundEnabledRef.current && audioSession?.music.paused) {
+      audioSession.music.volume = 0;
+      void audioSession.music.play().then(() => fadeSensingMusic(audioSession, .18, 1400)).catch(() => {});
+    }
     event.currentTarget.setPointerCapture(event.pointerId);
     const now = performance.now();
     const bounds = event.currentTarget.getBoundingClientRect();
     const localX = clampSensing(event.clientX - bounds.left, 0, bounds.width);
     const localY = clampSensing(event.clientY - bounds.top, 0, bounds.height);
     sessionRef.current = { start: now, lastTime: now, lastX: localX, lastY: localY, revealX: localX, revealY: localY, cellKey: "" };
-    playMusic();
-    playGuide();
     setPhase("sensing");
     updateGesture(event, true);
   };
@@ -1365,34 +1480,7 @@ function CompassScreen() {
   const backgroundY = (cursor.yRatio - .5) * -14;
   return (
     <EmbeddedScreen className="compass-host">
-      <div className={`compass-screen sensing-screen sensing-${phase}`} data-testid="compass-screen" data-phase={phase} data-dimension={currentInsight.primaryChakra.id} data-word-id={phase === "idle" ? "" : currentInsight.selectedWord.id}>
-        <audio
-          ref={musicAudioRef}
-          className="sensing-music-audio"
-          src="/assets/haf/sensing/haf-fingertip-energy-flow-suno-mobile-v1.m4a"
-          preload="none"
-          loop
-          aria-hidden="true"
-        />
-        <audio
-          ref={guideAudioRef}
-          className="sensing-guide-audio"
-          src="/assets/haf/sensing/meditation-guide-haf-chenguang-v1.mp3"
-          preload="auto"
-          aria-hidden="true"
-          onPlay={() => {
-            guidePlayingRef.current = true;
-            if (musicAudioRef.current) musicAudioRef.current.volume = .1;
-          }}
-          onPause={() => {
-            guidePlayingRef.current = false;
-            if (soundEnabledRef.current && musicAudioRef.current) musicAudioRef.current.volume = .18;
-          }}
-          onEnded={() => {
-            guidePlayingRef.current = false;
-            if (musicAudioRef.current) musicAudioRef.current.volume = .18;
-          }}
-        />
+      <div className={`compass-screen sensing-screen sensing-${phase} ${introReady ? "sensing-intro-ready" : "sensing-intro-playing"}`} data-testid="compass-screen" data-phase={phase} data-intro-ready={introReady} data-intro-audio-status={introAudioStatus} data-dimension={currentInsight.primaryChakra.id} data-word-id={phase === "idle" ? "" : currentInsight.selectedWord.id}>
         <div
           className="sensing-background-shift"
           style={{ transform: `translate3d(${backgroundX}px, ${backgroundY}px, 0) scale(${1.035 + cursor.pressure * .025})` }}
@@ -1419,23 +1507,27 @@ function CompassScreen() {
           )}
         </div>
         <SensingRippleCanvas cursor={cursor} active={phase === "sensing"} />
-        <button className="visual-back sensing-back" onClick={() => flow.pop()} aria-label="返回">
+        <button className="visual-back sensing-back" onClick={() => { stopSensingAudio(); flow.pop(); }} aria-label="返回">
           <img src="/assets/haf/visual-refresh/back-chevron.svg" alt="" />
         </button>
-        <button className="sensing-sound" onClick={toggleSound} aria-label={soundEnabled ? "关闭声音" : "开启声音"} aria-pressed={soundEnabled}>
+        <button className="sensing-sound" onClick={toggleSound} disabled={!introReady} aria-label={!introReady ? "提示播放中" : soundEnabled ? "关闭声音" : "开启声音"} aria-pressed={soundEnabled}>
           {soundEnabled ? <SpeakerLoudIcon /> : <SpeakerOffIcon />}
         </button>
-        <header><small>今日能量感应</small><h1>让手指随直觉移动</h1><p>不必寻找方向，让颜色回应你的感受。</p></header>
+        {introAudioStatus === "error" && (
+          <button className="sensing-intro-retry" onClick={() => startSensingAudio(dateKey)}>轻触聆听提示</button>
+        )}
+        <header><small>今日能量感应</small><h1>{introReady ? "让手指随直觉移动" : "先听见此刻"}</h1><p>{introReady ? "不必寻找方向，让颜色回应你的感受。" : "跟随声音，把注意力慢慢带回指尖。"}</p></header>
         <div
-          className="sensing-touch-zone"
+          className={`sensing-touch-zone ${introReady ? "" : "sensing-touch-disabled"}`}
           data-scroll-drag="ignore"
           role="slider"
           aria-label="按住并移动手指感应此刻"
+          aria-disabled={!introReady}
           aria-valuemin={-100}
           aria-valuemax={100}
           aria-valuenow={Math.round(livePointRef.current.x * 100)}
           aria-valuetext={phase === "locked" ? `${currentWord} · ${currentInsight.primaryChakra.zh}` : phase === "sensing" ? "正在感应，松开手指接收回应" : "尚未选择"}
-          tabIndex={0}
+          tabIndex={introReady ? 0 : -1}
           onPointerDown={beginSensing}
           onPointerMove={(event) => event.currentTarget.hasPointerCapture(event.pointerId) && updateGesture(event)}
           onPointerUp={finishSensing}
@@ -1459,7 +1551,7 @@ function CompassScreen() {
           />
         </div>
         <section className="sensing-word" aria-live="polite">
-          <motion.small layout>{phase === "locked" ? "你停在这个词上——" : phase === "sensing" ? "回应正在汇聚" : "触碰一个位置"}</motion.small>
+          <motion.small layout>{!introReady ? "声音正在引导你" : phase === "locked" ? "你停在这个词上——" : phase === "sensing" ? "回应正在汇聚" : "触碰一个位置"}</motion.small>
           <AnimatePresence mode="popLayout">
             {phase === "locked" && (
               <motion.strong
@@ -1481,13 +1573,13 @@ function CompassScreen() {
               </motion.strong>
             )}
           </AnimatePresence>
-          <p>{phase === "idle" ? "按住并移动，松开手指接收回应" : phase === "sensing" ? "继续移动，松开手指让它显现" : `${currentInsight.primaryChakra.zh} · ${currentInsight.primaryChakra.themes.slice(0, 2).join(" · ")}`}</p>
+          <p>{!introReady ? "提示结束后，再让手指随直觉移动" : phase === "idle" ? "按住并移动，松开手指接收回应" : phase === "sensing" ? "继续移动，松开手指让它显现" : `${currentInsight.primaryChakra.zh} · ${currentInsight.primaryChakra.themes.slice(0, 2).join(" · ")}`}</p>
         </section>
         <AnimatePresence>
           {phase === "locked" && readyToComplete && (
             <motion.button
               className="sensing-complete"
-              onClick={() => flow.push(makeScreen("synthesis"))}
+              onClick={() => { stopSensingAudio(); flow.push(makeScreen("synthesis")); }}
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 8 }}
@@ -1551,7 +1643,7 @@ function ResultScreen() {
   return (
     <EmbeddedScreen className="result-host">
       <div className="result-screen" data-testid="result-screen">
-        <button className="visual-back result-back" onClick={() => flow.pop()} aria-label="返回重新感应">
+        <button className="visual-back result-back" onClick={() => { startSensingAudio(dateKey); flow.pop(); }} aria-label="返回重新感应">
           <img src="/assets/haf/visual-refresh/back-chevron.svg" alt="" />
         </button>
         <div className="result-top-actions">
@@ -1604,7 +1696,7 @@ function ResultScreen() {
             </button>
             <button className="result-refresh" onClick={refreshCourses}>换一批</button>
           </div>
-          <button className="result-resense" onClick={() => flow.pop()}>重新感应</button>
+          <button className="result-resense" onClick={() => { startSensingAudio(dateKey); flow.pop(); }}>重新感应</button>
         </footer>
       </div>
     </EmbeddedScreen>
