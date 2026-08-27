@@ -154,15 +154,15 @@ function inferCourseKeywordTags(course: { title: string; short_description: stri
     .map(([keyword]) => keyword);
 }
 const fitStatementByFormat: Record<string, string> = {
-  meditation: "用安静与觉察，把注意力带回此刻",
-  sound: "以声音与聆听为入口，让感受拥有被听见的空间",
-  movement: "通过身体练习，让此刻的能量有一个具体出口",
-  breathwork: "从呼吸开始，为身体与注意力留出缓冲",
-  creative: "借由创作与感官体验，让还未成形的感受自然出现",
-  dialogue: "通过对话与互动，重新看见自己在关系中的真实需要",
-  culture: "从文化与传统经验中，找到一条可以安放当下的线索",
-  lecture: "用清晰的主题与方法，帮助你重新整理此刻关注的问题",
-  guided_practice: "跟随一段具体练习，把此刻的线索落回体验",
+  meditation: "在安静的练习里，把散开的注意力慢慢收回",
+  sound: "让声音穿过身体，为还未成形的感受留下回响",
+  movement: "让身体在动作与停顿之间，重新辨认自己的节奏",
+  breathwork: "从一呼一吸开始，为身体与注意力留出空间",
+  creative: "借创作与感官，为难以言说的感受找到形状",
+  dialogue: "在倾听与回应之间，重新看见关系里的真实位置",
+  culture: "从传统与文化经验中，为当下找到一处安放",
+  lecture: "沿着清晰的主题，把此刻关注的问题重新理顺",
+  guided_practice: "跟随一段具体练习，把心里的线索带回体验",
 };
 const experienceSubjectByFormat: Record<string, string> = {
   meditation: "这段冥想练习",
@@ -175,6 +175,46 @@ const experienceSubjectByFormat: Record<string, string> = {
   lecture: "这场主题分享",
   guided_practice: "这段引导练习",
 };
+
+const chakraNarrative: Record<ChakraId, string> = {
+  root: "海底轮关照人与大地、身体与支撑的关系",
+  sacral: "生殖轮关照感受如何流动、创造如何发生",
+  solar_plexus: "太阳神经丛关照意志如何聚拢、选择如何落定",
+  heart: "心轮关照给予与接收之间的空间",
+  throat: "喉轮关照内在感受如何抵达外部世界",
+  third_eye: "眉心轮关照如何在纷杂之中重新看见",
+  crown: "顶轮关照个体经验如何回到更大的整体",
+};
+
+function courseNarrativeCue(course: CatalogCourse) {
+  const searchable = `${course.title} ${course.short_description}`;
+  if (/HIIT|高强度间歇|冲刺|跳跃/.test(searchable)) {
+    return { subject: "这场身体训练", practice: "冲刺、起跳与慢走交替，让力量有释放，也有落点", embodied: true };
+  }
+  if (/阴瑜伽/.test(searchable)) {
+    return { subject: "这场身体练习", practice: "让重力接住身体，让呼吸陪伴每一次停留", embodied: true };
+  }
+  if (/呼吸|调息|吐纳/.test(searchable) || course.format === "breathwork") {
+    return { subject: "这段呼吸练习", practice: "从一呼一吸开始，为身体与注意力留出空间", embodied: true };
+  }
+  if (/瑜伽|舞动|运动|体式|功法|太极|站桩|律动/.test(searchable)) {
+    return { subject: "这场身体练习", practice: "让身体在动作与停顿之间，重新辨认自己的节奏", embodied: true };
+  }
+  if (/颂钵|铜锣|唱诵|声音|声波|音疗|音乐/.test(searchable) || course.format === "sound") {
+    return { subject: "这场声音体验", practice: "让声音穿过身体，为还未成形的感受留下回响", embodied: true };
+  }
+  if (/冥想|正念|静心|内观/.test(searchable) || course.format === "meditation") {
+    return { subject: "这段冥想练习", practice: "在安静的练习里，把散开的注意力慢慢收回", embodied: false };
+  }
+  if (/创作|绘画|艺术|色彩|手作|刺绣|螺钿/.test(searchable) || course.format === "creative") {
+    return { subject: "这场创作体验", practice: "借创作与感官，为难以言说的感受找到形状", embodied: false };
+  }
+  if (/对话|分享|团体|关系/.test(searchable) || course.format === "dialogue") {
+    return { subject: "这场对话体验", practice: "在倾听与回应之间，重新看见关系里的真实位置", embodied: false };
+  }
+  const subject = experienceSubjectByFormat[course.format] ?? `这场${course.format_label}`;
+  return { subject, practice: course.fit_statement, embodied: false };
+}
 const historicalValidationAsOf = new Date("2025-10-24T08:00:00+08:00");
 const historicalCourses = historicalCatalogSource.courses.map((course) => ({
   course_id: course.course_id,
@@ -570,7 +610,6 @@ function buildCourseFitReason(
   course: CatalogCourse,
   insight: EnergyInsight,
   index: number,
-  lifePath: number,
   dayNumber: number,
   dateKey: string,
   usedModes: Set<FitReasonMode>,
@@ -580,13 +619,10 @@ function buildCourseFitReason(
     : course.chakra_tags.includes(insight.secondaryChakra.id)
       ? insight.secondaryChakra
       : null;
-  const matchesNumerology = Boolean(
-    course.numerology_tags?.includes(dayNumber)
-    || course.numerology_tags?.includes(reduceNumber(lifePath)),
-  );
+  const matchesDailyNumerology = Boolean(course.numerology_tags?.includes(dayNumber));
   const validModes: Record<FitReasonMode, boolean> = {
     keyword: course.keyword_tags.includes(insight.keywordId),
-    numerology: matchesNumerology,
+    numerology: matchesDailyNumerology,
     chakra: Boolean(matchedChakra),
     resonance: true,
     practice: true,
@@ -602,41 +638,54 @@ function buildCourseFitReason(
     ?? "practice";
   usedModes.add(mode);
 
-  const experience = experienceSubjectByFormat[course.format] ?? `这场${course.format_label}`;
+  const cue = courseNarrativeCue(course);
   const seed = `${dateKey}:${course.course_id}:${insight.keywordId}:${mode}`;
   if (mode === "keyword") {
+    if (insight.primaryChakra.id === "root" && cue.embodied) {
+      return chooseStable([
+        `你亲手停在“${insight.keyword.display}”；${cue.practice}，把海底轮的安定重新带回脚下。`,
+        `${cue.practice}；你选中的“${insight.keyword.display}”，因而重新拥有身体的重量。`,
+        `海底轮所指的安定，也可以在行动中被感知；${cue.practice}，让“${insight.keyword.display}”有了真实触点。`,
+      ], seed);
+    }
     return chooseStable([
-      `你停下来的“${insight.keyword.display}”所指向的方向，也能在${experience}里找到呼应。`,
-      `此刻浮现的“${insight.keyword.display}”与${experience}的内容线索彼此呼应，可以先收藏。`,
-      `顺着你感应到的“${insight.keyword.display}”，${experience}提供一条可继续体验的路径。`,
+      `你亲手停在“${insight.keyword.display}”；${cue.practice}，让这份共鸣有了可以进入的形状。`,
+      `${cue.practice}，让你选中的“${insight.keyword.display}”不只被命名，也有机会被亲身经历。`,
+      `顺着“${insight.keyword.display}”继续靠近，${cue.subject}把心里的线索带回一段真实体验。`,
     ], seed);
   }
   if (mode === "numerology") {
     return chooseStable([
-      `此刻的“${insight.dailyTheme.display}”需要一个具体入口；${experience}让它先变得可被感知。`,
-      `“${insight.dailyTheme.display}”是此刻更靠近你的线索，${experience}适合把模糊感受变得具体。`,
-      `顺着此刻的“${insight.dailyTheme.display}”，${experience}值得先被收藏，在合适的时候再进入。`,
+      `今日的“${insight.dailyTheme.display}”不只是一句提醒；${cue.practice}，为它找到一种具体节奏。`,
+      `顺着今日的“${insight.dailyTheme.display}”，${cue.practice}，也许更接近你此刻愿意投入的方式。`,
+      `今日主旋律落在“${insight.dailyTheme.display}”；${cue.subject}让这份线索从想法走向体验。`,
     ], seed);
   }
   if (mode === "chakra" && matchedChakra) {
-    const chakraTheme = matchedChakra.themes[0];
     return chooseStable([
-      `${matchedChakra.zh}此刻更靠近“${chakraTheme}”；${experience}提供一个与之呼应的入口。`,
-      `你此刻更需要关照${chakraTheme}，${experience}与${matchedChakra.zh}的线索相互照应。`,
-      `当${matchedChakra.zh}指向${chakraTheme}，${experience}能让注意力落在更具体的感受上。`,
+      `${chakraNarrative[matchedChakra.id]}；${cue.practice}，让这条能量线索落进真实体验。`,
+      `${matchedChakra.zh}此刻指向${matchedChakra.themes.slice(0, 2).join("与")}；${cue.subject}为它提供一条可感知的路径。`,
+      `从${matchedChakra.zh}的${matchedChakra.themes[0]}出发；${cue.practice}，让注意力有一处安放。`,
     ], seed);
   }
   if (mode === "resonance") {
+    if (insight.primaryChakra.id === "root" && cue.embodied) {
+      return chooseStable([
+        `“${insight.keyword.display}”在此刻浮现，不一定意味着静止；${cue.practice}，让身体重新辨认支点。`,
+        `${cue.practice}；你选中的“${insight.keyword.display}”，因而不只是一种想法。`,
+        `你停在“${insight.keyword.display}”；${cue.practice}，把海底轮的安定重新带回脚下。`,
+      ], seed);
+    }
     return chooseStable([
-      `你亲手停在“${insight.keyword.display}”，${experience}为这份当下共鸣提供一个具体入口。`,
-      `“${insight.keyword.display}”是你自己选中的线索；${experience}让它可以被继续感受。`,
-      `顺着你停下来的“${insight.keyword.display}”，${experience}保留了一条自然进入的路径。`,
+      `你亲手停在“${insight.keyword.display}”；${cue.practice}，让这份共鸣不只被看见，也能被经历。`,
+      `“${insight.keyword.display}”是你自己选中的线索；${cue.subject}为它留出一条继续靠近的路径。`,
+      `顺着“${insight.keyword.display}”继续向前，${cue.practice}，让内在回应拥有现实的触点。`,
     ], seed);
   }
   return chooseStable([
-    `${experience}的投入节奏与你此刻接近，可以先收藏，在合适的时候进入。`,
-    `如果只选一个不费力的入口，${experience}更接近你此刻可投入的状态。`,
-    `此刻不需要马上行动，${experience}可以先成为一条为未来保留的路径。`,
+    `${cue.practice}。它不替你定义答案，只为此刻的${insight.primaryChakra.themes[0]}留出入口。`,
+    `${cue.subject}的节奏与你此刻接近；可以先收藏，在真正合适的时候进入。`,
+    `此刻不必急着行动；${cue.practice}，先为这份感受保留一个位置。`,
   ], seed);
 }
 
@@ -720,7 +769,7 @@ function recommendCourses(
   const usedReasonModes = new Set<FitReasonMode>();
   return selected.map((course, index) => {
     const session = currentCourseSession(course);
-    const fit = buildCourseFitReason(course, insight, index, lifePath, dayNumber, dateKey, usedReasonModes);
+    const fit = buildCourseFitReason(course, insight, index, dayNumber, dateKey, usedReasonModes);
     return {
       id: course.course_id,
       title: course.title,
