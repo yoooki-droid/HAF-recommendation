@@ -24,14 +24,14 @@ Branch: `design/visual-refresh-2026-08-26`
 | Real generated raster field, not CSS approximation | Pass |
 | Energy orb follows the finger continuously | Pass |
 | Hold time, speed, travel range, pointer pressure, and position influence the result | Pass |
-| After release, the word waits 0.55 seconds and resolves over approximately 2.8-3.1 seconds | Pass |
+| After release, the word pauses briefly and resolves over approximately 1.35-1.55 seconds | Pass |
 | Release locks the current word | Pass |
 | The pastel moving orb contracts into a small white point after release | Pass |
 | Canvas ripple and luminous trail respond to movement | Pass |
 | Ripples are sparse white rings, capped at five and rendered around 30fps | Pass |
-| First touch starts an optional quiet ambient bed and Mandarin instruction; a visible sound toggle remains available | Pass |
-| Ambient audio ducks beneath narration and is stopped when leaving the route | Pass |
-| The real raster background drifts on a subtle 19-second loop without a video payload | Pass |
+| First touch starts an optional quiet ambient bed; selected/result words are never narrated | Pass |
+| Ambient audio is stopped when leaving the route; authored meditation narration is pending Seed Audio service activation | Pass |
+| The sensing field uses the approved silent six-second Seedance 2.5 loop with a static reduced-motion poster | Pass |
 | Visible word is the canonical weighted synthesis keyword, not a decorative chakra synonym | Pass |
 | Locked word persists into the result title, summary, recommendation score, and supported fit reason | Pass |
 | `完成感应` replaces pagination dots | Pass |

@@ -1208,17 +1208,6 @@ function CompassScreen() {
   const audioContextRef = useRef<AudioContext | null>(null);
   const ambientGainRef = useRef<GainNode | null>(null);
   const chimeIntervalRef = useRef<number | null>(null);
-  const narrationTimerRef = useRef<number | null>(null);
-  const introSpokenRef = useRef(false);
-
-  const restoreAmbientLevel = () => {
-    const context = audioContextRef.current;
-    const ambientGain = ambientGainRef.current;
-    if (!context || !ambientGain || !soundEnabledRef.current) return;
-    const now = context.currentTime;
-    ambientGain.gain.cancelScheduledValues(now);
-    ambientGain.gain.setTargetAtTime(.12, now, .55);
-  };
 
   const playChime = () => {
     const context = audioContextRef.current;
@@ -1304,46 +1293,6 @@ function CompassScreen() {
     ambientGain.gain.linearRampToValueAtTime(.12, now + 2.2);
   };
 
-  const speak = (text: string) => {
-    if (!soundEnabledRef.current || !("speechSynthesis" in window)) return;
-    void ensureAmbient();
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    const voices = window.speechSynthesis.getVoices();
-    utterance.voice = voices.find((voice) => voice.lang.toLowerCase().startsWith("zh-cn"))
-      ?? voices.find((voice) => voice.lang.toLowerCase().startsWith("zh"))
-      ?? null;
-    utterance.lang = "zh-CN";
-    utterance.rate = .76;
-    utterance.pitch = .94;
-    utterance.volume = .86;
-    const context = audioContextRef.current;
-    const ambientGain = ambientGainRef.current;
-    if (context && ambientGain) {
-      const now = context.currentTime;
-      ambientGain.gain.cancelScheduledValues(now);
-      ambientGain.gain.setTargetAtTime(.035, now, .2);
-    }
-    utterance.onend = restoreAmbientLevel;
-    utterance.onerror = restoreAmbientLevel;
-    window.speechSynthesis.speak(utterance);
-  };
-
-  const beginSoundRitual = () => {
-    void ensureAmbient();
-    if (introSpokenRef.current) return;
-    introSpokenRef.current = true;
-    window.setTimeout(() => speak("让手指随直觉移动。当你准备好，就松开手指。"), 280);
-  };
-
-  const scheduleWordNarration = (word: string) => {
-    if (narrationTimerRef.current !== null) window.clearTimeout(narrationTimerRef.current);
-    narrationTimerRef.current = window.setTimeout(() => {
-      speak(`此刻与你产生回应的是，${word}。`);
-      narrationTimerRef.current = null;
-    }, prefersReducedMotion ? 100 : 3250);
-  };
-
   const toggleSound = () => {
     const next = !soundEnabledRef.current;
     soundEnabledRef.current = next;
@@ -1352,18 +1301,11 @@ function CompassScreen() {
       void ensureAmbient(true);
       return;
     }
-    if (narrationTimerRef.current !== null) {
-      window.clearTimeout(narrationTimerRef.current);
-      narrationTimerRef.current = null;
-    }
-    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
     void audioContextRef.current?.suspend();
   };
 
   useEffect(() => () => {
     if (chimeIntervalRef.current !== null) window.clearInterval(chimeIntervalRef.current);
-    if (narrationTimerRef.current !== null) window.clearTimeout(narrationTimerRef.current);
-    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
     void audioContextRef.current?.close();
   }, []);
 
@@ -1425,7 +1367,7 @@ function CompassScreen() {
       setReadyToComplete(false);
       return undefined;
     }
-    const timer = window.setTimeout(() => setReadyToComplete(true), prefersReducedMotion ? 80 : 3850);
+    const timer = window.setTimeout(() => setReadyToComplete(true), prefersReducedMotion ? 80 : 1850);
     return () => window.clearTimeout(timer);
   }, [phase, prefersReducedMotion]);
 
@@ -1437,13 +1379,7 @@ function CompassScreen() {
     const localX = clampSensing(event.clientX - bounds.left, 0, bounds.width);
     const localY = clampSensing(event.clientY - bounds.top, 0, bounds.height);
     sessionRef.current = { start: now, lastTime: now, lastX: localX, lastY: localY, revealX: localX, revealY: localY, cellKey: "" };
-    if (narrationTimerRef.current !== null) {
-      window.clearTimeout(narrationTimerRef.current);
-      narrationTimerRef.current = null;
-    }
-    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
-    restoreAmbientLevel();
-    beginSoundRitual();
+    void ensureAmbient();
     setPhase("sensing");
     updateGesture(event, true);
   };
@@ -1456,7 +1392,6 @@ function CompassScreen() {
     setCurrentInsight(finalInsight);
     setPhase("locked");
     setCursor((current) => ({ ...current, pressure: Math.max(.72, current.pressure), sequence: current.sequence + 1 }));
-    scheduleWordNarration(finalInsight.keyword.display);
   };
 
   const currentWord = currentInsight.keyword.display;
@@ -1470,13 +1405,25 @@ function CompassScreen() {
           style={{ transform: `translate3d(${backgroundX}px, ${backgroundY}px, 0) scale(${1.035 + cursor.pressure * .025})` }}
           aria-hidden="true"
         >
-          <motion.img
-            className="sensing-background"
-            src="/assets/haf/visual-refresh/intuitive-flow-field-v1.png"
-            alt=""
-            animate={prefersReducedMotion ? undefined : { scale: [1.015, 1.052, 1.026], x: [-3, 5, -2], y: [2, -5, 3] }}
-            transition={{ duration: 19, repeat: Infinity, ease: "easeInOut" }}
-          />
+          {prefersReducedMotion ? (
+            <img
+              className="sensing-background"
+              src="/assets/haf/visual-refresh/intuitive-flow-field-v1.png"
+              alt=""
+            />
+          ) : (
+            <video
+              className="sensing-background sensing-background-video"
+              src="/assets/haf/sensing/intuitive-flow-seedance-2-5-v1.mp4"
+              poster="/assets/haf/visual-refresh/intuitive-flow-field-v1.png"
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="auto"
+              aria-hidden="true"
+            />
+          )}
         </div>
         <SensingRippleCanvas cursor={cursor} active={phase === "sensing"} />
         <button className="visual-back sensing-back" onClick={() => flow.pop()} aria-label="返回">
@@ -1530,11 +1477,11 @@ function CompassScreen() {
                   ? { opacity: 0, transition: { duration: .01 } }
                   : { opacity: 0, y: -4, scale: 1.015, filter: "blur(8px)", transition: { duration: .24, ease: [.4, 0, 1, 1] } }}
                 transition={prefersReducedMotion ? { duration: .01 } : {
-                  opacity: { duration: 2.8, delay: .55, ease: "linear" },
-                  y: { duration: 3, delay: .38, ease: [.45, 0, .55, 1] },
-                  scale: { duration: 3.05, delay: .38, ease: [.45, 0, .55, 1] },
-                  filter: { duration: 3.1, delay: .4, ease: [.45, 0, .55, 1] },
-                  letterSpacing: { duration: 3.05, delay: .38, ease: [.45, 0, .55, 1] },
+                  opacity: { duration: 1.35, delay: .24, ease: "linear" },
+                  y: { duration: 1.5, delay: .18, ease: [.3, 0, .3, 1] },
+                  scale: { duration: 1.55, delay: .18, ease: [.3, 0, .3, 1] },
+                  filter: { duration: 1.55, delay: .2, ease: [.3, 0, .3, 1] },
+                  letterSpacing: { duration: 1.55, delay: .18, ease: [.3, 0, .3, 1] },
                 }}
               >
                 {currentWord}

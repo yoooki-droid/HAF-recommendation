@@ -144,6 +144,7 @@ button { font: inherit; -webkit-tap-highlight-color: transparent; }
 .compass-screen { position: relative; height: 100%; overflow: hidden; color: white; isolation: isolate; }
 .sensing-background-shift { position: absolute; z-index: 0; inset: -3%; overflow: hidden; pointer-events: none; will-change: transform; transition: transform 180ms cubic-bezier(.2,.75,.25,1); }
 .sensing-background { width: 100%; height: 100%; object-fit: cover; pointer-events: none; will-change: transform; }
+.sensing-background-video { display: block; }
 .sensing-ripple-canvas { position: absolute; z-index: 2; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .sensing-back { z-index: 8; }
 .sensing-sound { position: absolute; z-index: 9; top: var(--haf-safe-top); right: 18px; width: 34px; height: 34px; padding: 0; border: 1px solid rgba(255,255,255,.28); border-radius: 50%; background: rgba(17,34,83,.16); color: rgba(255,255,255,.86); display: grid; place-items: center; box-shadow: inset 0 1px rgba(255,255,255,.12); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
