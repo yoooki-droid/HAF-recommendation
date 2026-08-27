@@ -1223,11 +1223,14 @@ function CompassScreen() {
   const audioContextRef = useRef<AudioContext | null>(null);
   const ambientGainRef = useRef<GainNode | null>(null);
   const chimeIntervalRef = useRef<number | null>(null);
+  const guideAudioRef = useRef<HTMLAudioElement | null>(null);
+  const guideStartedRef = useRef(false);
+  const guidePlayingRef = useRef(false);
 
   const playChime = () => {
     const context = audioContextRef.current;
     const ambientGain = ambientGainRef.current;
-    if (!context || !ambientGain || !soundEnabledRef.current || context.state !== "running") return;
+    if (!context || !ambientGain || !soundEnabledRef.current || guidePlayingRef.current || context.state !== "running") return;
     const now = context.currentTime;
     [440, 659.25].forEach((frequency, index) => {
       const oscillator = context.createOscillator();
@@ -1308,19 +1311,37 @@ function CompassScreen() {
     ambientGain.gain.linearRampToValueAtTime(.12, now + 2.2);
   };
 
+  const playGuide = () => {
+    const guide = guideAudioRef.current;
+    if (!guide || !soundEnabledRef.current || guideStartedRef.current) return;
+    guideStartedRef.current = true;
+    guide.currentTime = 0;
+    guide.volume = .88;
+    void guide.play().catch(() => {
+      guideStartedRef.current = false;
+      guidePlayingRef.current = false;
+    });
+  };
+
   const toggleSound = () => {
     const next = !soundEnabledRef.current;
     soundEnabledRef.current = next;
     setSoundEnabled(next);
     if (next) {
       void ensureAmbient(true);
+      const guide = guideAudioRef.current;
+      if (guideStartedRef.current && guide && !guide.ended) {
+        void guide.play().catch(() => { guidePlayingRef.current = false; });
+      }
       return;
     }
+    guideAudioRef.current?.pause();
     void audioContextRef.current?.suspend();
   };
 
   useEffect(() => () => {
     if (chimeIntervalRef.current !== null) window.clearInterval(chimeIntervalRef.current);
+    guideAudioRef.current?.pause();
     void audioContextRef.current?.close();
   }, []);
 
@@ -1395,6 +1416,7 @@ function CompassScreen() {
     const localY = clampSensing(event.clientY - bounds.top, 0, bounds.height);
     sessionRef.current = { start: now, lastTime: now, lastX: localX, lastY: localY, revealX: localX, revealY: localY, cellKey: "" };
     void ensureAmbient();
+    playGuide();
     setPhase("sensing");
     updateGesture(event, true);
   };
@@ -1415,6 +1437,16 @@ function CompassScreen() {
   return (
     <EmbeddedScreen className="compass-host">
       <div className={`compass-screen sensing-screen sensing-${phase}`} data-testid="compass-screen" data-phase={phase} data-dimension={currentInsight.primaryChakra.id} data-word-id={phase === "idle" ? "" : currentInsight.selectedWord.id}>
+        <audio
+          ref={guideAudioRef}
+          className="sensing-guide-audio"
+          src="/assets/haf/sensing/meditation-guide-haf-chenguang-v1.mp3"
+          preload="auto"
+          aria-hidden="true"
+          onPlay={() => { guidePlayingRef.current = true; }}
+          onPause={() => { guidePlayingRef.current = false; }}
+          onEnded={() => { guidePlayingRef.current = false; }}
+        />
         <div
           className="sensing-background-shift"
           style={{ transform: `translate3d(${backgroundX}px, ${backgroundY}px, 0) scale(${1.035 + cursor.pressure * .025})` }}

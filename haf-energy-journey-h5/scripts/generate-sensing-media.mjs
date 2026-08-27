@@ -6,16 +6,14 @@ const projectRoot = resolve(import.meta.dirname, "..");
 const mediaDir = join(projectRoot, "public/assets/haf/sensing");
 const qaDir = join(projectRoot, "qa/sensing-generated-media-v1");
 const sourceFrame = join(projectRoot, "public/assets/haf/visual-refresh/intuitive-flow-field-v1.png");
-const audioOutput = join(mediaDir, "meditation-guide-seed-audio-1-0-v1.mp3");
+const audioOutput = join(mediaDir, "meditation-guide-haf-chenguang-v1.mp3");
 const videoOutput = join(mediaDir, "intuitive-flow-seedance-2-5-v1.mp4");
 const mode = process.argv.find((value) => ["audio", "video", "all"].includes(value)) ?? "all";
 const dryRun = process.argv.includes("--dry-run");
 
-const audioPrompt = `生成一段总时长约18秒的中文冥想引导成片。唯一的人声是一位35至45岁的成熟女性冥想带领者，声音偏低、温暖、稳定，有讲故事的质感和自然呼吸，亲近但不甜腻，不要播音腔，不要客服腔，不要机械感。语速缓慢，句间保留真实停顿。
-[0-1秒] 极轻的空气流动与很远的钵音泛音，不出现旋律，不要突然起音。
-[1-15.5秒] 她轻声引导：“先别急着寻找答案。把呼吸放慢一点。让手指随直觉移动，像在暗处靠近一束微光。感觉哪里在回应你，就在那里多停留一会儿。当你准备好了，轻轻松开手。让那个词，自己浮现。”
-[15.5-18秒] 人声自然结束，只留下很轻的空气感与钵音尾韵，平滑淡出。
-全程单人、近距离、克制、真诚，有安静的叙事张力。背景声必须低于人声，不要鼓点，不要明显旋律，不要唱歌，不要第二个人声，不要念出任何感应结果或具体词语，不要课程推荐，不要广告口号。`;
+const audioText = "深呼吸，感受此刻。让能量汇聚指尖，轻触屏幕，在感受到回应的地方停下。";
+const audioSpeaker = process.env.VOLC_VOICE_SPEAKER_ID || "";
+const audioResourceId = process.env.VOLC_VOICE_RESOURCE_ID || "seed-icl-2.0";
 
 const videoPrompt = `以首帧和尾帧提供的同一张蓝紫、青蓝、微暖橙色能量流场为唯一视觉依据，生成一个可无缝循环的手机全屏抽象背景。镜头完全固定，不推进、不旋转、不摇晃；不改变原图构图，不添加人物、物体、文字、符号或新的线条。只有原有的柔和光带像呼吸一样非常缓慢地流动，局部明暗轻轻起伏，细小光粒偶尔沿曲线漂移，首尾画面严格回到相同状态。质感空灵、克制、细腻、有深度，不廉价，不像屏保，不出现向外爆炸或放射状扩张，不闪烁，不突然变亮，不造成眩晕。静音，无对白，无配乐，无音效。`;
 
@@ -65,47 +63,80 @@ async function downloadPrivateUrl(url, outputPath) {
   return media;
 }
 
+function parseChunkedTts(body) {
+  const chunks = [];
+  const records = body
+    .trim()
+    .split(/\r?\n|(?<=})\s*(?={)/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  for (const record of records) {
+    let message;
+    try {
+      message = JSON.parse(record);
+    } catch {
+      continue;
+    }
+    if (message.code !== 0 && message.code !== 20000000) {
+      throw new Error(`Voice synthesis failed (${message.code ?? "unknown_error"}): ${message.message || "request failed"}`);
+    }
+    if (typeof message.data === "string" && message.data.length > 0) {
+      chunks.push(Buffer.from(message.data, "base64"));
+    }
+  }
+  if (chunks.length === 0) throw new Error("Voice synthesis succeeded without audio data.");
+  return Buffer.concat(chunks);
+}
+
 async function generateAudio() {
   const apiKey = process.env.VOLC_AUDIO_API_KEY;
   if (!apiKey) throw new Error("VOLC_AUDIO_API_KEY is not configured.");
-  const response = await fetch("https://openspeech.bytedance.com/api/v3/tts/create", {
+  if (!audioSpeaker) throw new Error("VOLC_VOICE_SPEAKER_ID is not configured.");
+  const response = await fetch("https://openspeech.bytedance.com/api/v3/tts/unidirectional", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "X-Api-Key": apiKey,
+      "X-Api-Resource-Id": audioResourceId,
       "X-Api-Request-Id": randomUUID(),
     },
     body: JSON.stringify({
-      model: "seed-audio-1.0",
-      text_prompt: audioPrompt,
-      audio_config: {
-        format: "mp3",
-        sample_rate: 48000,
-        speech_rate: -14,
-        loudness_rate: 0,
-        pitch_rate: -2,
-        enable_subtitle: true,
+      user: { uid: "haf-energy-journey" },
+      req_params: {
+        text: audioText,
+        model: "seed-tts-2.0-standard",
+        speaker: audioSpeaker,
+        audio_params: {
+          format: "mp3",
+          sample_rate: 24000,
+          speech_rate: -6,
+          loudness_rate: -2,
+        },
       },
-      watermark: { aigc_watermark: false },
     }),
   });
-  const result = await readJsonResponse(response, "Seed Audio");
-  let audio;
-  if (typeof result.audio === "string" && result.audio.length > 0) {
-    audio = Buffer.from(result.audio, "base64");
-    await mkdir(dirname(audioOutput), { recursive: true });
-    await writeFile(audioOutput, audio, { mode: 0o644 });
-  } else if (typeof result.url === "string") {
-    audio = await downloadPrivateUrl(result.url, audioOutput);
-  } else {
-    throw new Error("Seed Audio succeeded without audio data.");
+  const body = await response.text();
+  if (!response.ok) {
+    const headerCode = response.headers.get("x-api-status-code");
+    const headerMessage = response.headers.get("x-api-message");
+    let message = `Voice synthesis failed (${response.status}${headerCode ? `, ${headerCode}` : ""}): ${headerMessage || "request failed"}`;
+    try {
+      const error = JSON.parse(body);
+      message = `Voice synthesis failed (${response.status}, ${error.code ?? "unknown_error"}): ${error.message ?? "request failed"}`;
+    } catch {
+      // Keep the status-only error so responses never leak request credentials.
+    }
+    throw new Error(message);
   }
+  const audio = parseChunkedTts(body);
+  await mkdir(dirname(audioOutput), { recursive: true });
+  await writeFile(audioOutput, audio, { mode: 0o644 });
   return {
     kind: "audio",
-    model: "seed-audio-1.0",
-    prompt_sha256: sha256(Buffer.from(audioPrompt)),
-    duration_seconds: result.duration ?? null,
-    original_duration_seconds: result.original_duration ?? null,
+    model: "doubao-voice-design + seed-icl-2.0",
+    speaker_id: audioSpeaker,
+    text_sha256: sha256(Buffer.from(audioText)),
+    duration_seconds: null,
     output: `public/assets/haf/sensing/${basename(audioOutput)}`,
     output_sha256: sha256(audio),
   };
@@ -181,7 +212,7 @@ await mkdir(qaDir, { recursive: true });
 if (dryRun) {
   process.stdout.write(`${JSON.stringify({
     mode,
-    audio: { model: "seed-audio-1.0", duration: "~18s", format: "mp3", sample_rate: 48000 },
+    audio: { model: "doubao-voice-design + seed-icl-2.0", speaker: audioSpeaker || "<configure VOLC_VOICE_SPEAKER_ID>", text: audioText, duration: "~10s", format: "mp3", sample_rate: 24000 },
     video: { model: process.env.SEEDANCE_MODEL || "doubao-seedance-2-5-260628", duration: 6, ratio: "adaptive", resolution: "480p", generate_audio: false, watermark: false },
     outputs: { audio: audioOutput, video: videoOutput },
   }, null, 2)}\n`);

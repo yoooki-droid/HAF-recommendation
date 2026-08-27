@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-27T03:49:18.206Z",
+  "generated_at": "2026-08-27T06:20:06.086Z",
   "status": "review_candidate",
   "results": [
     {
@@ -13,6 +13,15 @@
       "ratio": "217:471",
       "output": "public/assets/haf/sensing/intuitive-flow-seedance-2-5-v1.mp4",
       "output_sha256": "0bc483778f16cdcdc834150455eadfec568e25a07bb0cce84e85674d1790b83c"
+    },
+    {
+      "kind": "audio",
+      "model": "doubao-voice-design + seed-icl-2.0",
+      "speaker_id": "S_TvrsMOhd2",
+      "text_sha256": "a4285733fc1620b7a3705a467785cf6ffaac86e0fac3f109f816866b327f4fd6",
+      "duration_seconds": 9.816,
+      "output": "public/assets/haf/sensing/meditation-guide-haf-chenguang-v1.mp3",
+      "output_sha256": "450f59f5fc327707a12d09013ed66aa8d4f85f636e0cab49396489195ff1c982"
     }
   ]
 }

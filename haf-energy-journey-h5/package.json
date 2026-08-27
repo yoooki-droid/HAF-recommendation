@@ -10,6 +10,7 @@
     "test:sites": "node --test tests/sites-worker.test.mjs",
     "check:numerology": "node scripts/check-numerology-rules.mjs",
     "generate:sensing-media": "node scripts/generate-sensing-media.mjs",
+    "generate:sensing-voice": "node scripts/generate-sensing-media.mjs audio",
     "predev": "npm run check:runtime",
     "dev": "vite",
     "prebuild": "npm run check:runtime",
