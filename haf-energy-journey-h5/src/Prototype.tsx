@@ -1277,9 +1277,9 @@ function CompassScreen() {
   };
 
   const finishSensing = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (!event.currentTarget.hasPointerCapture(event.pointerId)) return;
+    if (phase !== "sensing") return;
     const finalInsight = updateGesture(event, true);
-    event.currentTarget.releasePointerCapture(event.pointerId);
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
     setPoint(livePointRef.current);
     setCurrentInsight(finalInsight);
     setPhase("locked");
@@ -1311,7 +1311,7 @@ function CompassScreen() {
           aria-valuemin={-100}
           aria-valuemax={100}
           aria-valuenow={Math.round(livePointRef.current.x * 100)}
-          aria-valuetext={phase === "idle" ? "尚未选择" : `${currentWord} · ${currentInsight.primaryChakra.zh}`}
+          aria-valuetext={phase === "locked" ? `${currentWord} · ${currentInsight.primaryChakra.zh}` : phase === "sensing" ? "正在感应，松开手指接收回应" : "尚未选择"}
           tabIndex={0}
           onPointerDown={beginSensing}
           onPointerMove={(event) => event.currentTarget.hasPointerCapture(event.pointerId) && updateGesture(event)}
@@ -1332,9 +1332,9 @@ function CompassScreen() {
           />
         </div>
         <section className="sensing-word" aria-live="polite">
-          <motion.small layout>{phase === "locked" ? "你停在这个词上——" : phase === "sensing" ? "这里浮现" : "触碰一个位置"}</motion.small>
+          <motion.small layout>{phase === "locked" ? "你停在这个词上——" : phase === "sensing" ? "回应正在汇聚" : "触碰一个位置"}</motion.small>
           <AnimatePresence mode="popLayout">
-            {phase !== "idle" && (
+            {phase === "locked" && (
               <motion.strong
                 key={currentWord}
                 initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 10, scale: .94, filter: "blur(13px)", letterSpacing: ".13em" }}
@@ -1354,7 +1354,7 @@ function CompassScreen() {
               </motion.strong>
             )}
           </AnimatePresence>
-          <p>{phase === "idle" ? "只有位置改变，新的词才会出现" : phase === "sensing" ? "继续移动，或松手留下这个词" : `${currentInsight.primaryChakra.zh} · ${currentInsight.primaryChakra.themes.slice(0, 2).join(" · ")}`}</p>
+          <p>{phase === "idle" ? "按住并移动，松开手指接收回应" : phase === "sensing" ? "继续移动，松开手指让它显现" : `${currentInsight.primaryChakra.zh} · ${currentInsight.primaryChakra.themes.slice(0, 2).join(" · ")}`}</p>
         </section>
         <AnimatePresence>
           {phase === "locked" && readyToComplete && (
