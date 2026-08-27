@@ -119,6 +119,7 @@ button { font: inherit; -webkit-tap-highlight-color: transparent; }
 .compass-host .journey-module::after { background: rgba(5, 10, 33, .13); }
 .compass-screen { position: relative; height: 100%; overflow: hidden; color: white; isolation: isolate; }
 .sensing-background-shift { position: absolute; z-index: 0; inset: -3%; overflow: hidden; pointer-events: none; will-change: transform; transition: transform 180ms cubic-bezier(.2,.75,.25,1); }
+.sensing-background-breathe { width: 100%; height: 100%; will-change: transform; transform-origin: 50% 48%; animation: sensing-field-breathe 24s ease-in-out infinite; }
 .sensing-background { width: 100%; height: 100%; object-fit: cover; pointer-events: none; will-change: transform; }
 .sensing-background-video { display: block; }
 .sensing-ripple-canvas { position: absolute; z-index: 2; inset: 0; width: 100%; height: 100%; pointer-events: none; }
@@ -149,6 +150,13 @@ button { font: inherit; -webkit-tap-highlight-color: transparent; }
 
 @media (prefers-reduced-motion: reduce) {
   .sensing-background-shift, .sensing-background, .sensing-word, .sensing-orb { transition: none; }
+  .sensing-background-breathe { animation: none; }
+}
+
+@keyframes sensing-field-breathe {
+  0%, 100% { transform: rotate(-.75deg) scale(1.035); }
+  45% { transform: rotate(.65deg) scale(1.072); }
+  72% { transform: rotate(.15deg) scale(1.052); }
 }
 
 .synthesis-screen { height: 100%; box-sizing: border-box; padding: 50px 27px 34px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }

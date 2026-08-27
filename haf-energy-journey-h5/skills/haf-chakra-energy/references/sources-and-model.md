@@ -18,9 +18,9 @@ Do not describe the HAF formula as ancient, Vedic, Tantric, medical, biometric, 
 
 ## Current HAF word-resonance model v0.2
 
-The current sensing experience reverses the earlier inference direction. A normalized touch position addresses one cell in a hidden 7-column × 10-row field. Every cell contains one unique user-facing word, each chakra owns exactly ten words, and the field interleaves chakra families so no visible region represents a chakra or four-pole direction.
+The current sensing experience reverses the earlier inference direction. A normalized touch position addresses one cell in a hidden 7-column × 10-row field. Every cell contains one unique user-facing word, each chakra owns exactly ten words, and the field interleaves chakra families so no visible region represents a chakra or four-pole direction. Field v2 applies a seeded toroidal row/column shift plus optional axis mirroring for each sensing attempt. This keeps all 70 cells bijective while preventing any absolute screen coordinate—including the center—from permanently identifying one word.
 
-Words change only after the finger crosses into another cell. Time, pressure, and movement speed may affect visual feedback, but they do not rotate words or change the selected chakra. Releasing the finger locks the visible word; that word's declared chakra is always the primary result.
+The opaque field seed is generated as a sensing gesture begins, remains fixed until release, and is preserved with the structured result. Words change only after the finger crosses into another cell. Time, pressure, movement speed, and background animation may affect visual feedback, but they do not rotate words or change the selected chakra. Releasing the finger locks the visible word; that word's declared chakra is always the primary result.
 
 ```text
 raw_affinity =

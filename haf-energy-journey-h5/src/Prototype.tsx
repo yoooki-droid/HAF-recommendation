@@ -60,6 +60,8 @@ type EnergyInsight = {
   secondaryChakra: ChakraReading;
   resonance: {
     cell: { column: number; row: number };
+    mappedCell: { column: number; row: number };
+    fieldSeed: string;
     chakraId: ChakraId;
   };
   intensity: { id: "soft" | "clear" | "strong"; label: string };
@@ -97,6 +99,8 @@ type JourneyState = {
   completeProfile: () => void;
   point: Point;
   setPoint: (point: Point) => void;
+  fieldSeed: string;
+  setFieldSeed: (seed: string) => void;
   favorites: string[];
   toggleFavorite: (id: string) => void;
   lifePath: number;
@@ -434,6 +438,12 @@ function chooseStable<T>(items: T[], seed: string) {
   return items[stableIndex(seed, items.length)];
 }
 
+function createSensingFieldSeed() {
+  return typeof crypto.randomUUID === "function"
+    ? crypto.randomUUID()
+    : `field-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
 function catalogDateParts(value: string) {
   const match = value.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})/);
   if (!match) return null;
@@ -524,18 +534,24 @@ function calculateNumerology(birth: Profile["birth"], today: Date) {
   return { lifePath, personalDay };
 }
 
-function sensingWordForPoint(point: Point) {
+function sensingWordForPoint(point: Point, fieldSeed: string) {
   const columns = chakraWordModel.field.columns;
   const rows = chakraWordModel.field.rows;
   const column = Math.min(columns - 1, Math.max(0, Math.floor(((point.x + 1) / 2) * columns)));
   const row = Math.min(rows - 1, Math.max(0, Math.floor(((point.y + 1) / 2) * rows)));
-  const chakraIndex = (column * chakraWordModel.field.chakra_stride + row * chakraWordModel.field.row_stride) % chakraWordModel.chakra_order.length;
+  const columnOffset = stableIndex(`${fieldSeed}:column`, columns);
+  const rowOffset = stableIndex(`${fieldSeed}:row`, rows);
+  const mirroredColumn = stableIndex(`${fieldSeed}:mirror-x`, 2) === 1 ? columns - 1 - column : column;
+  const mirroredRow = stableIndex(`${fieldSeed}:mirror-y`, 2) === 1 ? rows - 1 - row : row;
+  const mappedColumn = (mirroredColumn + columnOffset) % columns;
+  const mappedRow = (mirroredRow + rowOffset) % rows;
+  const chakraIndex = (mappedColumn * chakraWordModel.field.chakra_stride + mappedRow * chakraWordModel.field.row_stride) % chakraWordModel.chakra_order.length;
   const chakraId = chakraWordModel.chakra_order[chakraIndex];
-  return { column, row, chakraId, word: chakraWordModel.chakras[chakraId].words[row] };
+  return { column, row, mappedColumn, mappedRow, chakraId, word: chakraWordModel.chakras[chakraId].words[mappedRow] };
 }
 
-function projectChakras(point: Point, lifePath: number, personalDay: number) {
-  const selected = sensingWordForPoint(point);
+function projectChakras(point: Point, lifePath: number, personalDay: number, fieldSeed: string) {
+  const selected = sensingWordForPoint(point, fieldSeed);
   const lifeAffinity = chakraWordModel.number_affinity[String(lifePath)] ?? chakraWordModel.number_affinity[String(reduceNumber(lifePath))];
   const dayAffinity = chakraWordModel.number_affinity[String(personalDay)];
   const chakras = chakraWordModel.chakra_order.map((id) => {
@@ -554,8 +570,8 @@ function projectChakras(point: Point, lifePath: number, personalDay: number) {
   return { selected, primary: chakras[0], secondary: chakras[1] };
 }
 
-function synthesizeEnergy(point: Point, lifePath: number, personalDay: number, dateKey: string): EnergyInsight {
-  const projection = projectChakras(point, lifePath, personalDay);
+function synthesizeEnergy(point: Point, lifePath: number, personalDay: number, dateKey: string, fieldSeed: string): EnergyInsight {
+  const projection = projectChakras(point, lifePath, personalDay, fieldSeed);
   const dailyThemeId = synthesisModel.number_keyword[String(personalDay)];
   const keywordId = projection.selected.word.keyword_id;
   const keywordCandidates = Array.from(new Set<KeywordId>([
@@ -594,6 +610,8 @@ function synthesizeEnergy(point: Point, lifePath: number, personalDay: number, d
     secondaryChakra: projection.secondary,
     resonance: {
       cell: { column: projection.selected.column, row: projection.selected.row },
+      mappedCell: { column: projection.selected.mappedColumn, row: projection.selected.mappedRow },
+      fieldSeed,
       chakraId: projection.selected.chakraId,
     },
     intensity: intensityByChakra[projection.primary.id],
@@ -881,6 +899,7 @@ function JourneyProvider({ children }: { children: ReactNode }) {
   });
   const [userProfileStatus, setUserProfileStatus] = useState<JourneyState["userProfileStatus"]>("loading");
   const [point, setPoint] = useState<Point>({ x: -0.42, y: -0.24 });
+  const [fieldSeed, setFieldSeed] = useState(createSensingFieldSeed);
   const [favorites, setFavorites] = useState<string[]>(() => loadLocal(favoriteStorageKey, []));
   const moduleViewTracked = useRef(false);
   const today = useMemo(() => new Date(), []);
@@ -915,6 +934,8 @@ function JourneyProvider({ children }: { children: ReactNode }) {
       },
       point,
       setPoint,
+      fieldSeed,
+      setFieldSeed,
       favorites,
       toggleFavorite: (id) => {
         const isSaved = favorites.includes(id);
@@ -1245,8 +1266,8 @@ function SensingRippleCanvas({ cursor, active }: { cursor: SensingCursor; active
 function CompassScreen() {
   const flow = useFlow();
   const prefersReducedMotion = useReducedMotion();
-  const { point, setPoint, lifePath, dayNumber, dateKey } = useJourney();
-  const initialInsight = useMemo(() => synthesizeEnergy(point, lifePath, dayNumber, dateKey), [dateKey, dayNumber, lifePath, point]);
+  const { point, setPoint, fieldSeed, setFieldSeed, lifePath, dayNumber, dateKey } = useJourney();
+  const initialInsight = useMemo(() => synthesizeEnergy(point, lifePath, dayNumber, dateKey, fieldSeed), [dateKey, dayNumber, fieldSeed, lifePath, point]);
   const [phase, setPhase] = useState<"idle" | "sensing" | "locked">("idle");
   const [currentInsight, setCurrentInsight] = useState(initialInsight);
   const [readyToComplete, setReadyToComplete] = useState(false);
@@ -1267,8 +1288,9 @@ function CompassScreen() {
     sequence: 0,
   });
   const livePointRef = useRef(point);
+  const fieldSeedRef = useRef(fieldSeed);
   const sessionRef = useRef({ start: 0, lastTime: 0, lastX: 196, lastY: 448, revealX: 196, revealY: 448, cellKey: "", travel: 0 });
-  const gestureStartRef = useRef({ cursor, insight: initialInsight, point });
+  const gestureStartRef = useRef({ cursor, insight: initialInsight, point, fieldSeed });
   const soundEnabledRef = useRef(true);
 
   useEffect(() => {
@@ -1318,7 +1340,7 @@ function CompassScreen() {
     const hold = now - session.start;
     const forcefulMovement = clampSensing((speed - .32) / .72, 0, 1);
     livePointRef.current = rawPoint;
-    const nextInsight = synthesizeEnergy(rawPoint, lifePath, dayNumber, dateKey);
+    const nextInsight = synthesizeEnergy(rawPoint, lifePath, dayNumber, dateKey, fieldSeedRef.current);
     const cellKey = `${nextInsight.resonance.cell.column}:${nextInsight.resonance.cell.row}`;
     const distanceFromReveal = Math.hypot(x - session.revealX, y - session.revealY);
     if (forceReveal || (cellKey !== session.cellKey && distanceFromReveal >= 24)) {
@@ -1377,7 +1399,8 @@ function CompassScreen() {
     const bounds = event.currentTarget.getBoundingClientRect();
     const localX = clampSensing(event.clientX - bounds.left, 0, bounds.width);
     const localY = clampSensing(event.clientY - bounds.top, 0, bounds.height);
-    gestureStartRef.current = { cursor, insight: currentInsight, point: livePointRef.current };
+    gestureStartRef.current = { cursor, insight: currentInsight, point: livePointRef.current, fieldSeed: fieldSeedRef.current };
+    fieldSeedRef.current = createSensingFieldSeed();
     sessionRef.current = { start: now, lastTime: now, lastX: localX, lastY: localY, revealX: localX, revealY: localY, cellKey: "", travel: 0 };
     setPhase("sensing");
     updateGesture(event, true);
@@ -1397,12 +1420,14 @@ function CompassScreen() {
     if (!isIntentionalSensing) {
       const start = gestureStartRef.current;
       livePointRef.current = start.point;
+      fieldSeedRef.current = start.fieldSeed;
       setCurrentInsight(start.insight);
       setCursor({ ...start.cursor, pressure: .22, sequence: start.cursor.sequence + 1 });
       setPhase("idle");
       return;
     }
     setPoint(livePointRef.current);
+    setFieldSeed(fieldSeedRef.current);
     setCurrentInsight(finalInsight);
     setPhase("locked");
     setCursor((current) => ({ ...current, pressure: Math.max(.72, current.pressure), sequence: current.sequence + 1 }));
@@ -1419,25 +1444,27 @@ function CompassScreen() {
           style={{ transform: `translate3d(${backgroundX}px, ${backgroundY}px, 0) scale(${1.035 + cursor.pressure * .025})` }}
           aria-hidden="true"
         >
-          {prefersReducedMotion ? (
-            <img
-              className="sensing-background"
-              src="/assets/haf/visual-refresh/intuitive-flow-field-v1.png"
-              alt=""
-            />
-          ) : (
-            <video
-              className="sensing-background sensing-background-video"
-              src="/assets/haf/sensing/intuitive-flow-seedance-2-5-v1.mp4"
-              poster="/assets/haf/visual-refresh/intuitive-flow-field-v1.png"
-              autoPlay
-              muted
-              loop
-              playsInline
-              preload="auto"
-              aria-hidden="true"
-            />
-          )}
+          <div className="sensing-background-breathe">
+            {prefersReducedMotion ? (
+              <img
+                className="sensing-background"
+                src="/assets/haf/visual-refresh/intuitive-flow-field-v1.png"
+                alt=""
+              />
+            ) : (
+              <video
+                className="sensing-background sensing-background-video"
+                src="/assets/haf/sensing/intuitive-flow-seedance-2-5-v1.mp4"
+                poster="/assets/haf/visual-refresh/intuitive-flow-field-v1.png"
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="auto"
+                aria-hidden="true"
+              />
+            )}
+          </div>
         </div>
         <SensingRippleCanvas cursor={cursor} active={phase === "sensing"} />
         <button className="visual-back sensing-back" onClick={() => { stopSensingAudio(); flow.pop(); }} aria-label="返回">
@@ -1464,7 +1491,14 @@ function CompassScreen() {
           onPointerDown={beginSensing}
           onPointerMove={(event) => event.currentTarget.hasPointerCapture(event.pointerId) && updateGesture(event)}
           onPointerUp={finishSensing}
-          onPointerCancel={() => setPhase("idle")}
+          onPointerCancel={() => {
+            const start = gestureStartRef.current;
+            livePointRef.current = start.point;
+            fieldSeedRef.current = start.fieldSeed;
+            setCurrentInsight(start.insight);
+            setCursor({ ...start.cursor, pressure: .22, sequence: start.cursor.sequence + 1 });
+            setPhase("idle");
+          }}
         >
           <motion.img
             className="sensing-orb"
@@ -1526,8 +1560,8 @@ function CompassScreen() {
 
 function SynthesisScreen() {
   const flow = useFlow();
-  const { lifePath, dayNumber, dateKey, point } = useJourney();
-  const insight = useMemo(() => synthesizeEnergy(point, lifePath, dayNumber, dateKey), [point, lifePath, dayNumber, dateKey]);
+  const { lifePath, dayNumber, dateKey, point, fieldSeed } = useJourney();
+  const insight = useMemo(() => synthesizeEnergy(point, lifePath, dayNumber, dateKey, fieldSeed), [point, lifePath, dayNumber, dateKey, fieldSeed]);
   useEffect(() => {
     let active = true;
     void Promise.all([
@@ -1552,8 +1586,8 @@ function SynthesisScreen() {
 
 function ResultScreen() {
   const flow = useFlow();
-  const { lifePath, dayNumber, dateKey, point, favorites, toggleFavorite } = useJourney();
-  const insight = useMemo(() => synthesizeEnergy(point, lifePath, dayNumber, dateKey), [point, lifePath, dayNumber, dateKey]);
+  const { lifePath, dayNumber, dateKey, point, fieldSeed, favorites, toggleFavorite } = useJourney();
+  const insight = useMemo(() => synthesizeEnergy(point, lifePath, dayNumber, dateKey, fieldSeed), [point, lifePath, dayNumber, dateKey, fieldSeed]);
   const readingCacheKey = energyReadingCacheKey(dateKey, dayNumber, insight);
   const energyReading = loadLocal(readingCacheKey, insight.energySummary);
   const [batch, setBatch] = useState(0);

@@ -24,7 +24,7 @@ class ChakraWordProjectionTests(unittest.TestCase):
         for row in range(10):
             for column in range(7):
                 x, y = self.point_for_cell(column, row)
-                result = MODULE.project(x, y, 7, 4)
+                result = MODULE.project(x, y, 7, 4, "complete-field-a")
                 selected = result["interaction"]["selected_word"]
                 self.assertEqual(result["primary_chakra"]["id"], selected["chakra_id"])
                 seen_words.add(selected["id"])
@@ -36,13 +36,20 @@ class ChakraWordProjectionTests(unittest.TestCase):
         self.assertEqual(set(chakra_counts.values()), {10})
 
     def test_same_cell_is_stable(self) -> None:
-        first = MODULE.project(-0.42, -0.24, 9, 6)
-        second = MODULE.project(-0.42, -0.24, 9, 6)
+        first = MODULE.project(-0.42, -0.24, 9, 6, "stable-layout")
+        second = MODULE.project(-0.42, -0.24, 9, 6, "stable-layout")
         self.assertEqual(first["interaction"], second["interaction"])
 
+    def test_center_is_not_permanently_bound_to_one_word(self) -> None:
+        center_words = {
+            MODULE.project(0.0, 0.0, 9, 6, f"layout-{index}")["interaction"]["selected_word"]["id"]
+            for index in range(40)
+        }
+        self.assertGreaterEqual(len(center_words), 12)
+
     def test_position_change_crossing_a_cell_changes_the_word(self) -> None:
-        first = MODULE.project(-0.42, -0.24, 9, 6)
-        second = MODULE.project(0.42, 0.24, 9, 6)
+        first = MODULE.project(-0.42, -0.24, 9, 6, "cross-cell")
+        second = MODULE.project(0.42, 0.24, 9, 6, "cross-cell")
         self.assertNotEqual(first["interaction"]["selected_word"]["id"], second["interaction"]["selected_word"]["id"])
 
     def test_output_contains_all_seven_ranked_chakras(self) -> None:

@@ -27,21 +27,40 @@ def validate_inputs(x: float, y: float, life_path: int, personal_day: int) -> No
         raise ValueError("personal_day must be 1-9")
 
 
-def word_for_point(x: float, y: float, model: dict[str, Any] | None = None) -> dict[str, Any]:
+def stable_index(seed: str, length: int) -> int:
+    hash_value = 2166136261
+    for character in seed:
+        hash_value ^= ord(character)
+        hash_value = (hash_value * 16777619) & 0xFFFFFFFF
+    return hash_value % max(1, length)
+
+
+def word_for_point(x: float, y: float, field_seed: str, model: dict[str, Any] | None = None) -> dict[str, Any]:
     source = model or load_model()
     field = source["field"]
     column = min(field["columns"] - 1, max(0, int(((x + 1) / 2) * field["columns"])))
     row = min(field["rows"] - 1, max(0, int(((y + 1) / 2) * field["rows"])))
-    chakra_index = (column * field["chakra_stride"] + row * field["row_stride"]) % len(source["chakra_order"])
+    column_offset = stable_index(f"{field_seed}:column", field["columns"])
+    row_offset = stable_index(f"{field_seed}:row", field["rows"])
+    mirrored_column = field["columns"] - 1 - column if stable_index(f"{field_seed}:mirror-x", 2) == 1 else column
+    mirrored_row = field["rows"] - 1 - row if stable_index(f"{field_seed}:mirror-y", 2) == 1 else row
+    mapped_column = (mirrored_column + column_offset) % field["columns"]
+    mapped_row = (mirrored_row + row_offset) % field["rows"]
+    chakra_index = (mapped_column * field["chakra_stride"] + mapped_row * field["row_stride"]) % len(source["chakra_order"])
     chakra_id = source["chakra_order"][chakra_index]
-    word = source["chakras"][chakra_id]["words"][row]
-    return {"cell": {"column": column, "row": row}, "chakra_id": chakra_id, "word": word}
+    word = source["chakras"][chakra_id]["words"][mapped_row]
+    return {
+        "cell": {"column": column, "row": row},
+        "mapped_cell": {"column": mapped_column, "row": mapped_row},
+        "chakra_id": chakra_id,
+        "word": word,
+    }
 
 
-def project(x: float, y: float, life_path: int, personal_day: int) -> dict[str, Any]:
+def project(x: float, y: float, life_path: int, personal_day: int, field_seed: str = "haf-default-field") -> dict[str, Any]:
     validate_inputs(x, y, life_path, personal_day)
     model = load_model()
-    selected = word_for_point(x, y, model)
+    selected = word_for_point(x, y, field_seed, model)
     weights = model["weights"]
     floor = model["score"]["floor"]
     span = model["score"]["span"]
@@ -83,9 +102,10 @@ def project(x: float, y: float, life_path: int, personal_day: int) -> dict[str, 
         "schema_version": SCHEMA_VERSION,
         "model_version": model["model_version"],
         "field_version": model["field_version"],
-        "input": {"x": x, "y": y, "life_path": life_path, "personal_day": personal_day},
+        "input": {"x": x, "y": y, "life_path": life_path, "personal_day": personal_day, "field_seed": field_seed},
         "interaction": {
             "cell": selected["cell"],
+            "mapped_cell": selected["mapped_cell"],
             "selected_word": {**selected["word"], "chakra_id": selected["chakra_id"]},
             "selection_policy": "release_locks_word_then_word_selects_chakra",
         },
@@ -109,6 +129,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--y", type=float, required=True)
     parser.add_argument("--life-path", type=int, required=True)
     parser.add_argument("--personal-day", type=int, required=True)
+    parser.add_argument("--field-seed", default="haf-default-field", help="Opaque seed that fixes one sensing-field layout")
     parser.add_argument("--pretty", action="store_true", help="Pretty-print JSON")
     return parser
 
@@ -116,7 +137,7 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> None:
     args = build_parser().parse_args()
     try:
-        result = project(args.x, args.y, args.life_path, args.personal_day)
+        result = project(args.x, args.y, args.life_path, args.personal_day, args.field_seed)
     except ValueError as error:
         raise SystemExit(str(error)) from error
     print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, separators=None if args.pretty else (",", ":")))

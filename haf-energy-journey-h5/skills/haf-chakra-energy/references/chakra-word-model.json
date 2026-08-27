@@ -1,11 +1,12 @@
 {
   "model_version": "haf.chakra-word-resonance.v0.2",
-  "field_version": "haf.chakra-word-field.v1",
+  "field_version": "haf.chakra-word-field.v2",
   "field": {
     "columns": 7,
     "rows": 10,
     "chakra_stride": 3,
-    "row_stride": 2
+    "row_stride": 2,
+    "layout_policy": "seeded_toroidal_shift_with_optional_axis_mirroring"
   },
   "weights": {
     "selected_word": 0.70,

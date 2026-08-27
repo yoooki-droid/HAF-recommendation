@@ -19,6 +19,7 @@ python3 scripts/project_chakra_energy.py \
   --y -0.48 \
   --life-path 9 \
   --personal-day 7 \
+  --field-seed sensing-session-7f3a \
   --pretty
 ```
 
@@ -29,6 +30,7 @@ python3 scripts/project_chakra_energy.py \
 
 - Keep exactly ten unique resonance words for each of the seven chakra families.
 - Change the visible word only after the pointer enters another field cell; time alone must never rotate words.
+- Give each sensing attempt an opaque random field seed. The seed may shift and mirror the hidden field, but it must remain fixed from pointer-down through release and be preserved with the reading so the result is reproducible. No absolute screen coordinate may permanently identify one word.
 - Release locks the visible word, and that word's chakra is always primary.
 - Combine selected-word evidence (70%), Life Path affinity (20%), and Personal Day affinity (10%) for relative display scores and the supporting chakra.
 - Treat all seven scores as relative reflective signals, not measured energy.
