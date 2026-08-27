@@ -1267,7 +1267,8 @@ function CompassScreen() {
     sequence: 0,
   });
   const livePointRef = useRef(point);
-  const sessionRef = useRef({ start: 0, lastTime: 0, lastX: 196, lastY: 448, revealX: 196, revealY: 448, cellKey: "" });
+  const sessionRef = useRef({ start: 0, lastTime: 0, lastX: 196, lastY: 448, revealX: 196, revealY: 448, cellKey: "", travel: 0 });
+  const gestureStartRef = useRef({ cursor, insight: initialInsight, point });
   const soundEnabledRef = useRef(true);
 
   useEffect(() => {
@@ -1308,6 +1309,7 @@ function CompassScreen() {
     const y = clampSensing(event.clientY - bounds.top, 0, bounds.height);
     const elapsed = Math.max(16, now - session.lastTime);
     const distance = Math.hypot(x - session.lastX, y - session.lastY);
+    session.travel += distance;
     const speed = distance / elapsed;
     const rawPoint = {
       x: clampSensing((x / bounds.width) * 2 - 1, -.88, .88),
@@ -1375,15 +1377,31 @@ function CompassScreen() {
     const bounds = event.currentTarget.getBoundingClientRect();
     const localX = clampSensing(event.clientX - bounds.left, 0, bounds.width);
     const localY = clampSensing(event.clientY - bounds.top, 0, bounds.height);
-    sessionRef.current = { start: now, lastTime: now, lastX: localX, lastY: localY, revealX: localX, revealY: localY, cellKey: "" };
+    gestureStartRef.current = { cursor, insight: currentInsight, point: livePointRef.current };
+    sessionRef.current = { start: now, lastTime: now, lastX: localX, lastY: localY, revealX: localX, revealY: localY, cellKey: "", travel: 0 };
     setPhase("sensing");
     updateGesture(event, true);
   };
 
   const finishSensing = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (phase !== "sensing") return;
+    const session = sessionRef.current;
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const releaseX = clampSensing(event.clientX - bounds.left, 0, bounds.width);
+    const releaseY = clampSensing(event.clientY - bounds.top, 0, bounds.height);
+    const releaseTravel = Math.hypot(releaseX - session.lastX, releaseY - session.lastY);
+    const gestureDuration = performance.now() - session.start;
+    const isIntentionalSensing = session.travel + releaseTravel >= 22 || gestureDuration >= 320;
     const finalInsight = updateGesture(event, true);
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    if (!isIntentionalSensing) {
+      const start = gestureStartRef.current;
+      livePointRef.current = start.point;
+      setCurrentInsight(start.insight);
+      setCursor({ ...start.cursor, pressure: .22, sequence: start.cursor.sequence + 1 });
+      setPhase("idle");
+      return;
+    }
     setPoint(livePointRef.current);
     setCurrentInsight(finalInsight);
     setPhase("locked");
@@ -1466,7 +1484,7 @@ function CompassScreen() {
           />
         </div>
         <section className="sensing-word" aria-live="polite">
-          <motion.small layout>{!introReady ? "声音正在引导你" : phase === "locked" ? "你停在这个词上——" : phase === "sensing" ? "回应正在汇聚" : "触碰一个位置"}</motion.small>
+          <motion.small layout>{!introReady ? "声音正在引导你" : phase === "locked" ? "你停在这个词上——" : phase === "sensing" ? "回应正在汇聚" : "按住屏幕，缓慢移动"}</motion.small>
           <AnimatePresence mode="popLayout">
             {phase === "locked" && (
               <motion.strong
@@ -1488,7 +1506,7 @@ function CompassScreen() {
               </motion.strong>
             )}
           </AnimatePresence>
-          <p>{!introReady ? "提示结束后，再让手指随直觉移动" : phase === "idle" ? "按住并移动，松开手指接收回应" : phase === "sensing" ? "继续移动，松开手指让它显现" : `${currentInsight.primaryChakra.zh} · ${currentInsight.primaryChakra.themes.slice(0, 2).join(" · ")}`}</p>
+          <p>{!introReady ? "提示结束后，再让手指随直觉移动" : phase === "idle" ? "轻触只唤醒声音，移动或停留后再松开" : phase === "sensing" ? "继续移动，松开手指让它显现" : `${currentInsight.primaryChakra.zh} · ${currentInsight.primaryChakra.themes.slice(0, 2).join(" · ")}`}</p>
         </section>
         <AnimatePresence>
           {phase === "locked" && readyToComplete && (
