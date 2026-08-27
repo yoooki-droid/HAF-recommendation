@@ -37,6 +37,24 @@ class NumerologyTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "valid YYYY-MM-DD"):
             MODULE.calculate_profile("1990-02-30", "2026-08-22")
 
+    def test_personal_day_primary_display_words(self) -> None:
+        themes = MODULE.load_themes()["numbers"]
+        expected = {
+            "1": "开始",
+            "2": "连接",
+            "3": "表达",
+            "4": "安定",
+            "5": "变化",
+            "6": "关怀",
+            "7": "内省",
+            "8": "实现",
+            "9": "完成",
+        }
+        self.assertEqual(
+            {number: themes[number]["keywords"][0] for number in expected},
+            expected,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

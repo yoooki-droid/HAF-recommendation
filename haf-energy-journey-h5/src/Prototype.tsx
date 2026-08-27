@@ -136,17 +136,25 @@ const synthesisModel = synthesisModelSource as typeof synthesisModelSource & {
   chakra_keyword: Record<ChakraId, KeywordId>;
   keywords: Record<KeywordId, { display: string; guidance: string; reflection_prompt: string }>;
 };
-const numberToKeyword: Record<number, KeywordId> = {
-  1: "begin",
-  2: "connect",
-  3: "express",
-  4: "ground",
-  5: "flow",
-  6: "care",
-  7: "insight",
-  8: "strength",
-  9: "release",
+const courseKeywordLexicon: Record<KeywordId, string[]> = {
+  begin: ["开始", "启程", "启动", "主动", "开创", "创新", "潜能", "勇气"],
+  connect: ["连接", "关系", "亲子", "家庭", "共鸣", "合唱", "信任", "伙伴", "社群", "互动", "陪伴", "团体"],
+  express: ["表达", "声音", "声乐", "朗读", "诵读", "沟通", "分享", "书写", "绘画", "艺术", "色彩"],
+  ground: ["身体", "扎根", "稳定", "落地", "安定", "根基", "秩序", "传统", "文化", "功法", "瑜伽", "运动"],
+  flow: ["流动", "五感", "感官", "情绪", "舞动", "舞蹈", "香气", "自由", "变化", "呼吸", "创造", "创作"],
+  care: ["疗愈", "照顾", "关怀", "滋养", "温柔", "接纳", "慈悲", "休息", "放松"],
+  insight: ["冥想", "觉察", "潜意识", "洞察", "直觉", "正念", "内观", "探索", "心理", "认知", "智慧", "哲学", "梦"],
+  strength: ["边界", "力量", "意志", "行动", "突破", "成长", "执行", "蜕变", "挑战", "自信", "潜质"],
+  release: ["放下", "释放", "松开", "告别", "完成", "清理", "释怀"],
+  integrate: ["整合", "合一", "平衡", "融合", "身心", "共振", "全息"],
 };
+
+function inferCourseKeywordTags(course: { title: string; short_description: string; api_tags?: string[] }) {
+  const searchable = [course.title, course.short_description, ...(course.api_tags ?? [])].join(" ");
+  return (Object.entries(courseKeywordLexicon) as Array<[KeywordId, string[]]>)
+    .filter(([, signals]) => signals.some((signal) => searchable.includes(signal)))
+    .map(([keyword]) => keyword);
+}
 const fitStatementByFormat: Record<string, string> = {
   meditation: "用安静与觉察，把注意力带回此刻",
   sound: "以声音与聆听为入口，让感受拥有被听见的空间",
@@ -183,7 +191,9 @@ const historicalCourses = historicalCatalogSource.courses.map((course) => ({
   chakra_tags: course.chakra_tags,
   energy_poles: course.energy_poles,
   numerology_tags: course.numerology_tags,
-  keyword_tags: course.numerology_tags.map((number) => numberToKeyword[number]).filter(Boolean),
+  // Course keyword evidence comes from course content. Numerology tags remain
+  // a separate score and must not be counted again as selected-word evidence.
+  keyword_tags: inferCourseKeywordTags(course),
   cover_asset: course.cover_asset,
   sessions: course.sessions.map((session) => ({
     session_id: session.session_id,
@@ -418,8 +428,13 @@ function synthesizeEnergy(point: Point, lifePath: number, personalDay: number, d
   ])).filter((id) => id !== dailyThemeId || id === keywordId);
   const canonicalKeyword = synthesisModel.keywords[keywordId];
   const keyword = { ...canonicalKeyword, display: projection.selected.word.display };
-  const dailyTheme = synthesisModel.keywords[dailyThemeId];
   const numberTheme = numberThemes[String(personalDay)];
+  const dailyTheme = {
+    ...synthesisModel.keywords[dailyThemeId],
+    // Daily-number language is its own symbolic layer. Do not reuse the
+    // chakra-facing canonical display word as if it were a traditional name.
+    display: numberTheme.keywords[0],
+  };
   const intensityByChakra: Record<ChakraId, EnergyInsight["intensity"]> = {
     root: { id: "soft", label: "轻柔" },
     sacral: { id: "clear", label: "清晰" },
@@ -493,9 +508,9 @@ function buildCourseFitReason(
   const seed = `${dateKey}:${course.course_id}:${insight.keywordId}:${mode}`;
   if (mode === "keyword") {
     return chooseStable([
-      `你停下来的“${insight.keyword.display}”也出现在这场体验的线索里；${experience}让这份回应有一个具体入口。`,
-      `此刻浮现的“${insight.keyword.display}”与${experience}彼此呼应，可以先收藏，在合适的时候进入。`,
-      `顺着你感应到的“${insight.keyword.display}”，${experience}提供了一条更具体的体验路径。`,
+      `你停下来的“${insight.keyword.display}”所指向的方向，也能在${experience}里找到呼应。`,
+      `此刻浮现的“${insight.keyword.display}”与${experience}的内容线索彼此呼应，可以先收藏。`,
+      `顺着你感应到的“${insight.keyword.display}”，${experience}提供一条可继续体验的路径。`,
     ], seed);
   }
   if (mode === "numerology") {
@@ -645,7 +660,7 @@ function dailyGreetingCacheKey(dateKey: string, dayNumber: number, lifePath: num
 }
 
 function energyReadingCacheKey(dateKey: string, dayNumber: number, insight: EnergyInsight) {
-  return `haf-energy-reading:v5:${dateKey}:${dayNumber}:${insight.selectedWord.id}:${insight.primaryChakra.id}:${insight.secondaryChakra.id}`;
+  return `haf-energy-reading:v6:${dateKey}:${dayNumber}:${insight.selectedWord.id}:${insight.primaryChakra.id}:${insight.secondaryChakra.id}`;
 }
 
 async function requestJson<T>(endpoint: string, payload: Record<string, unknown>): Promise<T | null> {
@@ -1587,8 +1602,15 @@ function ResultScreen() {
                   <div className="course-shade" aria-hidden="true" />
                   <div className="course-copy-haze" aria-hidden="true" />
                   <small className="course-date-pill">{course.dateLabel}</small>
-                  <button className={`course-heart ${saved ? "saved" : ""}`} onClick={() => toggleFavorite(course.id)} aria-label={`${saved ? "取消收藏" : "收藏"}${course.title}`}>
-                    <img src="/assets/haf/visual-refresh/heart-outline.svg" alt="" />
+                  <button
+                    className={`course-heart ${saved ? "saved" : ""}`}
+                    onClick={() => toggleFavorite(course.id)}
+                    aria-label={`${saved ? "取消收藏" : "收藏"}${course.title}`}
+                    aria-pressed={saved}
+                  >
+                    <svg viewBox="0 0 21 21" aria-hidden="true">
+                      <path d="M10.5 18.675 2.22 11.175C-2.28 6.675 4.335-1.965 10.5 5.025c6.165-6.99 12.75 1.68 8.28 6.15L10.5 18.675Z" />
+                    </svg>
                   </button>
                   <div className="course-copy"><span>{course.meta}</span><h3>{course.title}</h3><p>{course.fit}</p></div>
                 </article>
