@@ -1220,95 +1220,24 @@ function CompassScreen() {
   const livePointRef = useRef(point);
   const sessionRef = useRef({ start: 0, lastTime: 0, lastX: 196, lastY: 448, revealX: 196, revealY: 448, cellKey: "" });
   const soundEnabledRef = useRef(true);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const ambientGainRef = useRef<GainNode | null>(null);
-  const chimeIntervalRef = useRef<number | null>(null);
   const guideAudioRef = useRef<HTMLAudioElement | null>(null);
+  const musicAudioRef = useRef<HTMLAudioElement | null>(null);
   const guideStartedRef = useRef(false);
+  const musicStartedRef = useRef(false);
   const guidePlayingRef = useRef(false);
 
-  const playChime = () => {
-    const context = audioContextRef.current;
-    const ambientGain = ambientGainRef.current;
-    if (!context || !ambientGain || !soundEnabledRef.current || guidePlayingRef.current || context.state !== "running") return;
-    const now = context.currentTime;
-    [440, 659.25].forEach((frequency, index) => {
-      const oscillator = context.createOscillator();
-      const gain = context.createGain();
-      oscillator.type = "sine";
-      oscillator.frequency.value = frequency;
-      oscillator.detune.value = index === 0 ? -5 : 4;
-      gain.gain.setValueAtTime(.0001, now + index * .13);
-      gain.gain.exponentialRampToValueAtTime(index === 0 ? .026 : .014, now + .48 + index * .13);
-      gain.gain.exponentialRampToValueAtTime(.0001, now + 4.8 + index * .32);
-      oscillator.connect(gain).connect(ambientGain);
-      oscillator.start(now + index * .13);
-      oscillator.stop(now + 5.3 + index * .32);
-    });
-  };
-
-  const ensureAmbient = async (force = false) => {
-    if (!soundEnabledRef.current && !force) return;
-    if (!audioContextRef.current) {
-      const AudioContextConstructor = window.AudioContext
-        ?? (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-      if (!AudioContextConstructor) return;
-      const context = new AudioContextConstructor();
-      const ambientGain = context.createGain();
-      const lowPass = context.createBiquadFilter();
-      ambientGain.gain.value = .0001;
-      lowPass.type = "lowpass";
-      lowPass.frequency.value = 720;
-      lowPass.Q.value = .42;
-      lowPass.connect(ambientGain).connect(context.destination);
-
-      [98, 146.83, 220].forEach((frequency, index) => {
-        const oscillator = context.createOscillator();
-        const gain = context.createGain();
-        oscillator.type = index === 1 ? "triangle" : "sine";
-        oscillator.frequency.value = frequency;
-        oscillator.detune.value = [-4, 3, -7][index];
-        gain.gain.value = [.075, .032, .012][index];
-        oscillator.connect(gain).connect(lowPass);
-        oscillator.start();
-      });
-
-      const noiseBuffer = context.createBuffer(1, context.sampleRate * 4, context.sampleRate);
-      const channel = noiseBuffer.getChannelData(0);
-      let smoothed = 0;
-      for (let index = 0; index < channel.length; index += 1) {
-        smoothed = smoothed * .988 + (Math.random() * 2 - 1) * .012;
-        channel[index] = smoothed * 1.65;
-      }
-      const noise = context.createBufferSource();
-      const noiseGain = context.createGain();
-      noise.buffer = noiseBuffer;
-      noise.loop = true;
-      noiseGain.gain.value = .038;
-      noise.connect(noiseGain).connect(lowPass);
-      noise.start();
-
-      const pulse = context.createOscillator();
-      const pulseDepth = context.createGain();
-      pulse.type = "sine";
-      pulse.frequency.value = .052;
-      pulseDepth.gain.value = 150;
-      pulse.connect(pulseDepth).connect(lowPass.frequency);
-      pulse.start();
-
-      audioContextRef.current = context;
-      ambientGainRef.current = ambientGain;
-      chimeIntervalRef.current = window.setInterval(playChime, 7600);
+  const playMusic = () => {
+    const music = musicAudioRef.current;
+    if (!music || !soundEnabledRef.current) return;
+    if (!musicStartedRef.current) {
+      musicStartedRef.current = true;
+      music.currentTime = 0;
     }
-
-    const context = audioContextRef.current;
-    const ambientGain = ambientGainRef.current;
-    if (!context || !ambientGain) return;
-    if (context.state === "suspended") await context.resume();
-    const now = context.currentTime;
-    ambientGain.gain.cancelScheduledValues(now);
-    ambientGain.gain.setValueAtTime(Math.max(.0001, ambientGain.gain.value), now);
-    ambientGain.gain.linearRampToValueAtTime(.12, now + 2.2);
+    const guide = guideAudioRef.current;
+    music.volume = guidePlayingRef.current || (guideStartedRef.current && guide && !guide.ended) ? .1 : .18;
+    void music.play().catch(() => {
+      if (music.currentTime === 0) musicStartedRef.current = false;
+    });
   };
 
   const playGuide = () => {
@@ -1328,7 +1257,8 @@ function CompassScreen() {
     soundEnabledRef.current = next;
     setSoundEnabled(next);
     if (next) {
-      void ensureAmbient(true);
+      if (phase !== "idle" || musicStartedRef.current) playMusic();
+      if (phase !== "idle" && !guideStartedRef.current) playGuide();
       const guide = guideAudioRef.current;
       if (guideStartedRef.current && guide && !guide.ended) {
         void guide.play().catch(() => { guidePlayingRef.current = false; });
@@ -1336,13 +1266,12 @@ function CompassScreen() {
       return;
     }
     guideAudioRef.current?.pause();
-    void audioContextRef.current?.suspend();
+    musicAudioRef.current?.pause();
   };
 
   useEffect(() => () => {
-    if (chimeIntervalRef.current !== null) window.clearInterval(chimeIntervalRef.current);
     guideAudioRef.current?.pause();
-    void audioContextRef.current?.close();
+    musicAudioRef.current?.pause();
   }, []);
 
   const updateGesture = (event: ReactPointerEvent<HTMLDivElement>, forceReveal = false) => {
@@ -1415,7 +1344,7 @@ function CompassScreen() {
     const localX = clampSensing(event.clientX - bounds.left, 0, bounds.width);
     const localY = clampSensing(event.clientY - bounds.top, 0, bounds.height);
     sessionRef.current = { start: now, lastTime: now, lastX: localX, lastY: localY, revealX: localX, revealY: localY, cellKey: "" };
-    void ensureAmbient();
+    playMusic();
     playGuide();
     setPhase("sensing");
     updateGesture(event, true);
@@ -1438,14 +1367,31 @@ function CompassScreen() {
     <EmbeddedScreen className="compass-host">
       <div className={`compass-screen sensing-screen sensing-${phase}`} data-testid="compass-screen" data-phase={phase} data-dimension={currentInsight.primaryChakra.id} data-word-id={phase === "idle" ? "" : currentInsight.selectedWord.id}>
         <audio
+          ref={musicAudioRef}
+          className="sensing-music-audio"
+          src="/assets/haf/sensing/haf-fingertip-energy-flow-suno-v1.mp3"
+          preload="auto"
+          loop
+          aria-hidden="true"
+        />
+        <audio
           ref={guideAudioRef}
           className="sensing-guide-audio"
           src="/assets/haf/sensing/meditation-guide-haf-chenguang-v1.mp3"
           preload="auto"
           aria-hidden="true"
-          onPlay={() => { guidePlayingRef.current = true; }}
-          onPause={() => { guidePlayingRef.current = false; }}
-          onEnded={() => { guidePlayingRef.current = false; }}
+          onPlay={() => {
+            guidePlayingRef.current = true;
+            if (musicAudioRef.current) musicAudioRef.current.volume = .1;
+          }}
+          onPause={() => {
+            guidePlayingRef.current = false;
+            if (soundEnabledRef.current && musicAudioRef.current) musicAudioRef.current.volume = .18;
+          }}
+          onEnded={() => {
+            guidePlayingRef.current = false;
+            if (musicAudioRef.current) musicAudioRef.current.volume = .18;
+          }}
         />
         <div
           className="sensing-background-shift"

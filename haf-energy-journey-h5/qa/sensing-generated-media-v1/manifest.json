@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-27T06:20:06.086Z",
+  "generated_at": "2026-08-27T08:19:56Z",
   "status": "review_candidate",
   "results": [
     {
@@ -22,6 +22,16 @@
       "duration_seconds": 9.816,
       "output": "public/assets/haf/sensing/meditation-guide-haf-chenguang-v1.mp3",
       "output_sha256": "450f59f5fc327707a12d09013ed66aa8d4f85f636e0cab49396489195ff1c982"
+    },
+    {
+      "kind": "background_music",
+      "provider": "suno",
+      "model": "v5.5",
+      "title": "HAF · 指尖能量流",
+      "source_song_id": "00407e83-b00b-4c32-8a83-ee42a7ed7aac",
+      "duration_seconds": 198.456,
+      "output": "public/assets/haf/sensing/haf-fingertip-energy-flow-suno-v1.mp3",
+      "output_sha256": "afef540e9f6082b5ac4398ef2036243df4d11cf1e88c30479fd12080ad4dc2ec"
     }
   ]
 }
