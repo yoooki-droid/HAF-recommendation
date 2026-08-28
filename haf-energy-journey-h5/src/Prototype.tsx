@@ -260,6 +260,7 @@ type SensingAudioSession = {
   dateKey: string;
   music: HTMLAudioElement;
   guide: HTMLAudioElement;
+  soundEnabled: boolean;
   introFinished: boolean;
   guideStatus: SensingGuideStatus;
   guideStartTimer: number | null;
@@ -306,10 +307,13 @@ function stopSensingAudio() {
 
 function startSensingAudio(dateKey: string) {
   const heardToday = hasHeardSensingIntro(dateKey);
+  const continuingSession = Boolean(sensingAudioSession && sensingAudioSession.dateKey === dateKey);
   if (!sensingAudioSession || sensingAudioSession.dateKey !== dateKey) {
-    sensingAudioSession?.music.remove();
-    sensingAudioSession?.guide.remove();
     stopSensingAudio();
+    document.querySelectorAll<HTMLAudioElement>(".sensing-music-audio, .sensing-guide-audio").forEach((audio) => {
+      audio.pause();
+      audio.remove();
+    });
     const music = new Audio(sensingMusicUrl);
     const guide = new Audio(sensingGuideUrl);
     music.className = "sensing-music-audio";
@@ -324,6 +328,7 @@ function startSensingAudio(dateKey: string) {
       dateKey,
       music,
       guide,
+      soundEnabled: true,
       introFinished: heardToday,
       guideStatus: heardToday ? "ended" : "idle",
       guideStartTimer: null,
@@ -333,6 +338,9 @@ function startSensingAudio(dateKey: string) {
   }
 
   const session = sensingAudioSession;
+  if (continuingSession && (!session.soundEnabled || (!session.music.paused && (heardToday || session.introFinished)))) {
+    return session;
+  }
   session.introFinished = heardToday;
   session.guideStatus = heardToday ? "ended" : "idle";
   notifySensingIntro(session);
@@ -938,6 +946,7 @@ function JourneyProvider({ children }: { children: ReactNode }) {
     moduleViewTracked.current = true;
     trackEnergyEvent("energy_module_viewed");
   }, []);
+  useEffect(() => () => stopSensingAudio(), []);
 
   return (
     <JourneyContext.Provider value={{
@@ -1287,7 +1296,7 @@ function CompassScreen() {
   const [phase, setPhase] = useState<"idle" | "sensing" | "locked">("idle");
   const [currentInsight, setCurrentInsight] = useState(initialInsight);
   const [readyToComplete, setReadyToComplete] = useState(false);
-  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [soundEnabled, setSoundEnabled] = useState(() => sensingAudioSession?.soundEnabled ?? true);
   const [introReady, setIntroReady] = useState(() => (
     sensingAudioSession?.dateKey === dateKey ? sensingAudioSession.introFinished : hasHeardSensingIntro(dateKey)
   ));
@@ -1307,7 +1316,7 @@ function CompassScreen() {
   const fieldSeedRef = useRef(fieldSeed);
   const sessionRef = useRef({ start: 0, lastTime: 0, lastX: 196, lastY: 448, revealX: 196, revealY: 448, cellKey: "", travel: 0 });
   const gestureStartRef = useRef({ cursor, insight: initialInsight, point, fieldSeed });
-  const soundEnabledRef = useRef(true);
+  const soundEnabledRef = useRef(soundEnabled);
 
   useEffect(() => {
     const session = sensingAudioSession;
@@ -1333,11 +1342,10 @@ function CompassScreen() {
     setSoundEnabled(next);
     const session = sensingAudioSession;
     if (!session) return;
+    session.soundEnabled = next;
     if (next) void session.music.play();
     else session.music.pause();
   };
-
-  useEffect(() => () => stopSensingAudio(), []);
 
   const updateGesture = (event: ReactPointerEvent<HTMLDivElement>, forceReveal = false) => {
     const bounds = event.currentTarget.getBoundingClientRect();
@@ -1562,7 +1570,12 @@ function CompassScreen() {
           {phase === "locked" && readyToComplete && (
             <motion.button
               className="sensing-complete"
-              onClick={() => { stopSensingAudio(); flow.push(makeScreen("synthesis")); }}
+              onClick={() => {
+                if (sensingAudioSession && !sensingAudioSession.music.paused) {
+                  fadeSensingMusic(sensingAudioSession, .15, 900);
+                }
+                flow.push(makeScreen("synthesis"));
+              }}
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 8 }}
@@ -1580,6 +1593,9 @@ function SynthesisScreen() {
   const insight = useMemo(() => synthesizeEnergy(point, lifePath, dayNumber, dateKey, fieldSeed), [point, lifePath, dayNumber, dateKey, fieldSeed]);
   useEffect(() => {
     let active = true;
+    if (sensingAudioSession && !sensingAudioSession.music.paused) {
+      fadeSensingMusic(sensingAudioSession, .15, 900);
+    }
     void Promise.all([
       delay(1750),
       prepareEnergyReading({ dateKey, dayNumber, insight }),
@@ -1620,6 +1636,11 @@ function ResultScreen() {
     const history = appendCourseHistory(recentCourseIds, orderedCourses.map((course) => course.id));
     window.localStorage.setItem(recentCourseStorageKey, JSON.stringify(history));
   }, [orderedCourses, recentCourseIds]);
+  useEffect(() => {
+    if (sensingAudioSession && !sensingAudioSession.music.paused) {
+      fadeSensingMusic(sensingAudioSession, .12, 1100);
+    }
+  }, []);
 
   const refreshCourses = () => {
     setRecentCourseIds((previous) => new Set(appendCourseHistory(previous, orderedCourses.map((course) => course.id))));
@@ -1628,14 +1649,16 @@ function ResultScreen() {
   };
 
   const resense = () => {
-    startSensingAudio(dateKey);
+    if (sensingAudioSession && !sensingAudioSession.music.paused) {
+      fadeSensingMusic(sensingAudioSession, .18, 900);
+    }
     flow.pop();
   };
 
   return (
     <EmbeddedScreen className="result-host">
       <div className="result-screen" data-testid="result-screen">
-        <button className="visual-back result-back" onClick={() => { startSensingAudio(dateKey); flow.pop(); }} aria-label="返回重新感应">
+        <button className="visual-back result-back" onClick={resense} aria-label="返回重新感应">
           <img src="/assets/haf/visual-refresh/back-chevron.svg" alt="" />
         </button>
         <div className="result-top-actions">
