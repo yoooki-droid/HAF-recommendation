@@ -190,6 +190,7 @@ button { font: inherit; -webkit-tap-highlight-color: transparent; }
 .energy-facets > span:first-child strong { font-family: "Graphik", "Helvetica Neue", Arial, sans-serif; font-size: 27px; }
 .energy-facets em { margin: 0; align-self: start; color: rgba(255,255,255,.78); font-size: 12px; line-height: 18px; }
 .recommendations { position: relative; z-index: 4; height: 285px; flex: 0 0 285px; margin-top: 13px; }
+.recommendation-batch { position: absolute; inset: 0; width: 100%; }
 .course-rail { width: 100%; }
 .course-track { display: flex; gap: 12px; padding: 0 16px 6px; }
 .course-card { position: relative; isolation: isolate; flex: 0 0 325px; height: 285px; padding: 0; box-sizing: border-box; overflow: hidden; border: 0; border-radius: 22px; background: rgba(23,29,35,.52); box-shadow: 0 16px 34px rgba(0,0,0,.2); clip-path: inset(0 round 22px); transform: translateZ(0); }

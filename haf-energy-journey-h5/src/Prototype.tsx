@@ -1700,6 +1700,8 @@ function ResultScreen() {
   const readingCacheKey = energyReadingCacheKey(dateKey, dayNumber, insight);
   const energyReading = loadLocal(readingCacheKey, insight.energySummary);
   const [batch, setBatch] = useState(0);
+  const [courseTransitioning, setCourseTransitioning] = useState(false);
+  const courseTransitionTimerRef = useRef<number | null>(null);
   const [revealStage, setRevealStage] = useState(() => prefersReducedMotion ? 3 : 0);
   const [recentCourseIds, setRecentCourseIds] = useState(() => new Set(loadLocal<string[]>(recentCourseStorageKey, [])));
   const [sessionCourseIds, setSessionCourseIds] = useState<string[]>([]);
@@ -1726,12 +1728,15 @@ function ResultScreen() {
     }
     setRevealStage(0);
     const timers = [
-      window.setTimeout(() => setRevealStage(1), 220),
-      window.setTimeout(() => setRevealStage(2), 1500),
-      window.setTimeout(() => setRevealStage(3), 2700),
+      window.setTimeout(() => setRevealStage(1), 280),
+      window.setTimeout(() => setRevealStage(2), 1900),
+      window.setTimeout(() => setRevealStage(3), 3500),
     ];
     return () => timers.forEach((timer) => window.clearTimeout(timer));
   }, [prefersReducedMotion]);
+  useEffect(() => () => {
+    if (courseTransitionTimerRef.current !== null) window.clearTimeout(courseTransitionTimerRef.current);
+  }, []);
 
   const revealMotion = (visible: boolean, delay = 0, distance = 12) => ({
     opacity: visible ? 1 : 0,
@@ -1739,16 +1744,22 @@ function ResultScreen() {
     filter: visible ? "blur(0px)" : "blur(7px)",
     transition: prefersReducedMotion
       ? { duration: .01 }
-      : { duration: .82, delay, ease: [.22, 1, .36, 1] as [number, number, number, number] },
+      : { duration: 1.05, delay, ease: [.22, 1, .36, 1] as [number, number, number, number] },
   });
   const revealInitial = (distance = 12) => prefersReducedMotion
     ? false
     : { opacity: 0, y: distance, filter: "blur(7px)" };
 
   const refreshCourses = () => {
+    if (courseTransitioning) return;
+    setCourseTransitioning(true);
     setRecentCourseIds((previous) => new Set(appendCourseHistory(previous, orderedCourses.map((course) => course.id))));
     setSessionCourseIds((previous) => appendCourseHistory(previous, orderedCourses.map((course) => course.id)));
     setBatch((value) => value + 1);
+    courseTransitionTimerRef.current = window.setTimeout(() => {
+      setCourseTransitioning(false);
+      courseTransitionTimerRef.current = null;
+    }, prefersReducedMotion ? 30 : 940);
   };
 
   const resense = () => {
@@ -1799,30 +1810,62 @@ function ResultScreen() {
           style={{ pointerEvents: revealStage >= 3 ? "auto" : "none" }}
         >
           <h2 className="visually-hidden">此刻与你契合的体验</h2>
-          <Carousel className="course-rail" contentClassName="course-track" ariaLabel="此刻与你契合的体验">
-            {orderedCourses.map((course) => {
-              const saved = favorites.includes(course.id);
-              return (
-                <article className="course-card" data-testid="course-card" data-course-id={course.id} key={course.id}>
-                  <img className="course-visual" src={course.image} alt="" />
-                  <div className="course-shade" aria-hidden="true" />
-                  <div className="course-copy-haze" aria-hidden="true" />
-                  <small className="course-date-pill">{course.dateLabel}</small>
-                  <button
-                    className={`course-heart ${saved ? "saved" : ""}`}
-                    onClick={() => toggleFavorite(course.id)}
-                    aria-label={`${saved ? "取消收藏" : "收藏"}${course.title}`}
-                    aria-pressed={saved}
-                  >
-                    <svg viewBox="0 0 21 21" aria-hidden="true">
-                      <path d="M10.5 18.675 2.22 11.175C-2.28 6.675 4.335-1.965 10.5 5.025c6.165-6.99 12.75 1.68 8.28 6.15L10.5 18.675Z" />
-                    </svg>
-                  </button>
-                  <div className="course-copy"><span>{course.meta}</span><h3>{course.title}</h3><p>{course.fit}</p></div>
-                </article>
-              );
-            })}
-          </Carousel>
+          <AnimatePresence initial={false} mode="sync">
+            <motion.div
+              key={batch}
+              className="recommendation-batch"
+              initial={prefersReducedMotion ? false : { opacity: 0, x: 3, filter: "blur(1.5px)" }}
+              animate={{
+                opacity: 1,
+                x: 0,
+                filter: "blur(0px)",
+                transition: prefersReducedMotion ? { duration: .01 } : {
+                  opacity: { duration: .72, delay: .08, ease: "linear" },
+                  x: { duration: .78, delay: .08, ease: [.4, 0, .2, 1] },
+                  filter: { duration: .7, delay: .08, ease: [.4, 0, .2, 1] },
+                },
+              }}
+              exit={prefersReducedMotion
+                ? { opacity: 0, transition: { duration: .01 } }
+                : {
+                  opacity: 0,
+                  x: -6,
+                  filter: "blur(1.5px)",
+                  transition: {
+                    opacity: { duration: .58, ease: "linear" },
+                    x: { duration: .62, ease: [.4, 0, .2, 1] },
+                    filter: { duration: .58, ease: [.4, 0, .2, 1] },
+                  },
+                }}
+              aria-busy={courseTransitioning}
+              style={{ pointerEvents: courseTransitioning ? "none" : "auto" }}
+            >
+              <Carousel className="course-rail" contentClassName="course-track" ariaLabel="此刻与你契合的体验">
+                {orderedCourses.map((course) => {
+                  const saved = favorites.includes(course.id);
+                  return (
+                    <article className="course-card" data-testid="course-card" data-course-id={course.id} key={course.id}>
+                      <img className="course-visual" src={course.image} alt="" />
+                      <div className="course-shade" aria-hidden="true" />
+                      <div className="course-copy-haze" aria-hidden="true" />
+                      <small className="course-date-pill">{course.dateLabel}</small>
+                      <button
+                        className={`course-heart ${saved ? "saved" : ""}`}
+                        onClick={() => toggleFavorite(course.id)}
+                        aria-label={`${saved ? "取消收藏" : "收藏"}${course.title}`}
+                        aria-pressed={saved}
+                      >
+                        <svg viewBox="0 0 21 21" aria-hidden="true">
+                          <path d="M10.5 18.675 2.22 11.175C-2.28 6.675 4.335-1.965 10.5 5.025c6.165-6.99 12.75 1.68 8.28 6.15L10.5 18.675Z" />
+                        </svg>
+                      </button>
+                      <div className="course-copy"><span>{course.meta}</span><h3>{course.title}</h3><p>{course.fit}</p></div>
+                    </article>
+                  );
+                })}
+              </Carousel>
+            </motion.div>
+          </AnimatePresence>
         </motion.section>
         <motion.footer
           className="result-actions"
@@ -1840,6 +1883,7 @@ function ResultScreen() {
             <button
               className={`result-refresh ${recommendationLimitReached ? "result-refresh-resense" : ""}`}
               onClick={recommendationLimitReached ? resense : refreshCourses}
+              disabled={courseTransitioning}
             >{recommendationLimitReached ? "重新感应" : "换一批"}</button>
           </div>
           {!recommendationLimitReached && <button className="result-resense" onClick={resense}>重新感应</button>}

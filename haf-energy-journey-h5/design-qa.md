@@ -3,7 +3,7 @@
 - Source visual truth: `qa/result-progressive-reveal-2026-08-29/source-reference.png`
 - Implementation: `http://127.0.0.1:4173/`
 - Final implementation screenshot: `qa/result-progressive-reveal-2026-08-29/04-final-phone-frame.jpg`
-- Temporal evidence: `01-stage.jpg`, `02-stage.jpg`, `03-stage.jpg`
+- Temporal evidence: `01-stage.jpg`, `02-stage.jpg`, `03-stage.jpg`, `05-batch-transition.jpg`, `06-batch-final.jpg`
 - Side-by-side comparison: `qa/result-progressive-reveal-2026-08-29/comparison-side-by-side.png`
 - Source pixels: 708 × 1346, including the iPhone frame.
 - Implementation pixels: 511 × 968 phone-frame capture; app screen verified at 393 × 852 CSS px and scale 1.
@@ -51,12 +51,22 @@
 - The static comparison was regenerated with the latest final implementation screenshot. Dynamic result copy and catalog imagery differ from the source by expected sensing/catalog state, while the approved layout remains unchanged.
 - Console check: no application errors or warnings; only the normal Vite connection and React development-mode notices were present.
 
+### Pass 4 — passed after therapeutic-rhythm refinement
+
+- Finding: P2 temporal tone. The 3.52s grouped reveal still felt hurried for a screen intended to hold a quiet, therapeutic field, and `换一批` replaced the recommendation rail abruptly.
+- Fix: moved the grouped boundaries to 0.28s, 1.90s, and 3.50s, extended each group transition to 1.05s, and completed the full result narrative near 4.55s without changing layout. Added a restrained recommendation-batch crossfade: the outgoing rail fades and travels 6px left while the incoming rail starts 3px to the right and settles over roughly 0.8s.
+- Interaction guard: the refresh action is disabled during the batch handoff, the transitioning rail ignores pointer events, and reduced-motion users receive an immediate replacement without horizontal travel.
+- `01-stage.jpg`, `02-stage.jpg`, and `03-stage.jpg` confirm the slower three-beat hierarchy with no section shift.
+- `05-batch-transition.jpg` captures the fading overlap during the 6px/3px exchange; `06-batch-final.jpg` confirms the next unseen course batch settles into the identical card geometry.
+- Browser sampling confirmed the old and new batches coexist only during the transition, the IDs change to a new recommendation set, and the refresh control unlocks after the new rail settles.
+- Console check: no application errors or warnings.
+
 ## Focused-region comparison
 
-No separate static crop was needed because this pass does not change typography, card anatomy, imagery or spacing. The affected surface is temporal and spans the full result view; the three equal-frame stage captures are the focused comparison evidence.
+No separate static crop was needed because this pass does not change typography, card anatomy, imagery or spacing. The affected surface is temporal and spans the full result view; the three equal-frame stage captures plus the two batch-handoff frames are the focused comparison evidence.
 
 ## Follow-up polish
 
-- P3: after device testing, the gaps between the 0.22s, 1.50s, and 2.70s group boundaries can be adjusted by roughly ±0.15s without changing the approved grouped choreography.
+- P3: after device testing, the gaps between the 0.28s, 1.90s, and 3.50s group boundaries can be adjusted by roughly ±0.15s without changing the approved grouped choreography.
 
 final result: passed
