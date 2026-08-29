@@ -1694,11 +1694,13 @@ function SynthesisScreen() {
 
 function ResultScreen() {
   const flow = useFlow();
+  const prefersReducedMotion = useReducedMotion();
   const { lifePath, dayNumber, dateKey, point, fieldSeed, resetSensing, favorites, toggleFavorite } = useJourney();
   const insight = useMemo(() => synthesizeEnergy(point, lifePath, dayNumber, dateKey, fieldSeed), [point, lifePath, dayNumber, dateKey, fieldSeed]);
   const readingCacheKey = energyReadingCacheKey(dateKey, dayNumber, insight);
   const energyReading = loadLocal(readingCacheKey, insight.energySummary);
   const [batch, setBatch] = useState(0);
+  const [revealStage, setRevealStage] = useState(() => prefersReducedMotion ? 3 : 0);
   const [recentCourseIds, setRecentCourseIds] = useState(() => new Set(loadLocal<string[]>(recentCourseStorageKey, [])));
   const [sessionCourseIds, setSessionCourseIds] = useState<string[]>([]);
   const maxRecommendationBatches = useMemo(() => recommendationBatchLimit(insight), [insight]);
@@ -1717,6 +1719,31 @@ function ResultScreen() {
       fadeSensingMusic(sensingAudioSession, .12, 1100);
     }
   }, []);
+  useEffect(() => {
+    if (prefersReducedMotion) {
+      setRevealStage(3);
+      return undefined;
+    }
+    setRevealStage(0);
+    const timers = [
+      window.setTimeout(() => setRevealStage(1), 140),
+      window.setTimeout(() => setRevealStage(2), 900),
+      window.setTimeout(() => setRevealStage(3), 1580),
+    ];
+    return () => timers.forEach((timer) => window.clearTimeout(timer));
+  }, [prefersReducedMotion]);
+
+  const revealMotion = (visible: boolean, delay = 0, distance = 12) => ({
+    opacity: visible ? 1 : 0,
+    y: visible ? 0 : distance,
+    filter: visible ? "blur(0px)" : "blur(7px)",
+    transition: prefersReducedMotion
+      ? { duration: .01 }
+      : { duration: .56, delay, ease: [.22, 1, .36, 1] as [number, number, number, number] },
+  });
+  const revealInitial = (distance = 12) => prefersReducedMotion
+    ? false
+    : { opacity: 0, y: distance, filter: "blur(7px)" };
 
   const refreshCourses = () => {
     setRecentCourseIds((previous) => new Set(appendCourseHistory(previous, orderedCourses.map((course) => course.id))));
@@ -1734,7 +1761,7 @@ function ResultScreen() {
 
   return (
     <EmbeddedScreen className="result-host">
-      <div className="result-screen" data-testid="result-screen">
+      <div className="result-screen" data-testid="result-screen" data-reveal-stage={revealStage}>
         <button className="visual-back result-back" onClick={resense} aria-label="返回重新感应">
           <img src="/assets/haf/visual-refresh/back-chevron.svg" alt="" />
         </button>
@@ -1743,17 +1770,24 @@ function ResultScreen() {
         </div>
         <section className="result-insight">
           <div className="result-copy">
-            <small>今日能量回响</small>
-            <h1>{insight.compositeTitle}</h1>
-            <p>{energyReading}</p>
+            <motion.small initial={revealInitial()} animate={revealMotion(revealStage >= 1)}>今日能量回响</motion.small>
+            <motion.h1 initial={revealInitial()} animate={revealMotion(revealStage >= 1, .1)}>{insight.compositeTitle}</motion.h1>
+            <motion.p initial={revealInitial(9)} animate={revealMotion(revealStage >= 1, .22, 9)}>{energyReading}</motion.p>
           </div>
-          <div className="energy-facets" aria-label="今日能量的三个线索">
-            <span><small>今日灵数</small><strong>{dayNumber}</strong><em>{insight.dailyTheme.display}</em></span>
-            <span><small>当下共鸣</small><strong>{insight.keyword.display}</strong><em>由你亲手选中</em></span>
-            <span><small>能量落点</small><strong>{insight.primaryChakra.zh}</strong><em>{insight.primaryChakra.themes.slice(0, 2).join(" · ")}</em></span>
+          <div className="energy-facets" aria-label="今日能量的三个线索" aria-hidden={revealStage < 2}>
+            <motion.span initial={revealInitial()} animate={revealMotion(revealStage >= 2)}><small>今日灵数</small><strong>{dayNumber}</strong><em>{insight.dailyTheme.display}</em></motion.span>
+            <motion.span initial={revealInitial()} animate={revealMotion(revealStage >= 2, .09)}><small>当下共鸣</small><strong>{insight.keyword.display}</strong><em>由你亲手选中</em></motion.span>
+            <motion.span initial={revealInitial()} animate={revealMotion(revealStage >= 2, .18)}><small>能量落点</small><strong>{insight.primaryChakra.zh}</strong><em>{insight.primaryChakra.themes.slice(0, 2).join(" · ")}</em></motion.span>
           </div>
         </section>
-        <section className="recommendations">
+        <motion.section
+          className="recommendations"
+          initial={revealInitial(16)}
+          animate={revealMotion(revealStage >= 3, 0, 16)}
+          aria-hidden={revealStage < 3}
+          inert={revealStage < 3}
+          style={{ pointerEvents: revealStage >= 3 ? "auto" : "none" }}
+        >
           <h2 className="visually-hidden">此刻与你契合的体验</h2>
           <Carousel className="course-rail" contentClassName="course-track" ariaLabel="此刻与你契合的体验">
             {orderedCourses.map((course) => {
@@ -1779,8 +1813,15 @@ function ResultScreen() {
               );
             })}
           </Carousel>
-        </section>
-        <footer className="result-actions">
+        </motion.section>
+        <motion.footer
+          className="result-actions"
+          initial={revealInitial(12)}
+          animate={revealMotion(revealStage >= 3, .18, 12)}
+          aria-hidden={revealStage < 3}
+          inert={revealStage < 3}
+          style={{ pointerEvents: revealStage >= 3 ? "auto" : "none" }}
+        >
           <div className="result-primary-actions">
             <button className="result-saved-action" onClick={() => flow.push(makeScreen("favorites"))} aria-label={`查看已收藏${favorites.length ? ` ${favorites.length}` : ""}`}>
               <BookmarkIcon />
@@ -1792,7 +1833,7 @@ function ResultScreen() {
             >{recommendationLimitReached ? "重新感应" : "换一批"}</button>
           </div>
           {!recommendationLimitReached && <button className="result-resense" onClick={resense}>重新感应</button>}
-        </footer>
+        </motion.footer>
       </div>
     </EmbeddedScreen>
   );
