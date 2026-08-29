@@ -1726,9 +1726,9 @@ function ResultScreen() {
     }
     setRevealStage(0);
     const timers = [
-      window.setTimeout(() => setRevealStage(1), 140),
-      window.setTimeout(() => setRevealStage(2), 900),
-      window.setTimeout(() => setRevealStage(3), 1580),
+      window.setTimeout(() => setRevealStage(1), 220),
+      window.setTimeout(() => setRevealStage(2), 1500),
+      window.setTimeout(() => setRevealStage(3), 2700),
     ];
     return () => timers.forEach((timer) => window.clearTimeout(timer));
   }, [prefersReducedMotion]);
@@ -1739,7 +1739,7 @@ function ResultScreen() {
     filter: visible ? "blur(0px)" : "blur(7px)",
     transition: prefersReducedMotion
       ? { duration: .01 }
-      : { duration: .56, delay, ease: [.22, 1, .36, 1] as [number, number, number, number] },
+      : { duration: .82, delay, ease: [.22, 1, .36, 1] as [number, number, number, number] },
   });
   const revealInitial = (distance = 12) => prefersReducedMotion
     ? false
@@ -1769,16 +1769,26 @@ function ResultScreen() {
           <button onClick={() => flow.push(makeScreen("profile"))}>修改档案</button>
         </div>
         <section className="result-insight">
-          <div className="result-copy">
-            <motion.small initial={revealInitial()} animate={revealMotion(revealStage >= 1)}>今日能量回响</motion.small>
-            <motion.h1 initial={revealInitial()} animate={revealMotion(revealStage >= 1, .1)}>{insight.compositeTitle}</motion.h1>
-            <motion.p initial={revealInitial(9)} animate={revealMotion(revealStage >= 1, .22, 9)}>{energyReading}</motion.p>
-          </div>
-          <div className="energy-facets" aria-label="今日能量的三个线索" aria-hidden={revealStage < 2}>
-            <motion.span initial={revealInitial()} animate={revealMotion(revealStage >= 2)}><small>今日灵数</small><strong>{dayNumber}</strong><em>{insight.dailyTheme.display}</em></motion.span>
-            <motion.span initial={revealInitial()} animate={revealMotion(revealStage >= 2, .09)}><small>当下共鸣</small><strong>{insight.keyword.display}</strong><em>由你亲手选中</em></motion.span>
-            <motion.span initial={revealInitial()} animate={revealMotion(revealStage >= 2, .18)}><small>能量落点</small><strong>{insight.primaryChakra.zh}</strong><em>{insight.primaryChakra.themes.slice(0, 2).join(" · ")}</em></motion.span>
-          </div>
+          <motion.div
+            className="result-copy"
+            initial={revealInitial()}
+            animate={revealMotion(revealStage >= 1)}
+          >
+            <small>今日能量回响</small>
+            <h1>{insight.compositeTitle}</h1>
+            <p>{energyReading}</p>
+          </motion.div>
+          <motion.div
+            className="energy-facets"
+            initial={revealInitial()}
+            animate={revealMotion(revealStage >= 2)}
+            aria-label="今日能量的三个线索"
+            aria-hidden={revealStage < 2}
+          >
+            <span><small>今日灵数</small><strong>{dayNumber}</strong><em>{insight.dailyTheme.display}</em></span>
+            <span><small>当下共鸣</small><strong>{insight.keyword.display}</strong><em>由你亲手选中</em></span>
+            <span><small>能量落点</small><strong>{insight.primaryChakra.zh}</strong><em>{insight.primaryChakra.themes.slice(0, 2).join(" · ")}</em></span>
+          </motion.div>
         </section>
         <motion.section
           className="recommendations"
@@ -1817,7 +1827,7 @@ function ResultScreen() {
         <motion.footer
           className="result-actions"
           initial={revealInitial(12)}
-          animate={revealMotion(revealStage >= 3, .18, 12)}
+          animate={revealMotion(revealStage >= 3, 0, 12)}
           aria-hidden={revealStage < 3}
           inert={revealStage < 3}
           style={{ pointerEvents: revealStage >= 3 ? "auto" : "none" }}

@@ -14,7 +14,7 @@
 
 - No open P0, P1, or P2 findings.
 - The final frame preserves the reference hierarchy, full-screen atmosphere, typography scale, three-card alignment, course-card proportions, carousel crop, and bottom safe-area buffer. Result text and course imagery differ only because both are generated from the current sensing result and catalog batch.
-- The new temporal hierarchy is clear: the reflection appears alone, the three evidence facets follow, and the course rail plus actions appear last. Every section reserves its final layout space from the first frame, so the sequence creates no vertical shift.
+- The revised temporal hierarchy is clear and deliberately grouped: the result label, title, and reflection appear together; all three evidence facets follow together; then the course rail and all lower actions arrive together. Every section reserves its final layout space from the first frame, so the sequence creates no vertical shift.
 - Course controls are `inert`, hidden from assistive technology, and ignore pointer events before the final reveal stage; they become interactive only with the course rail.
 
 ## Required fidelity surfaces
@@ -40,12 +40,23 @@
 - `03-stage.jpg`: course rail and bottom actions complete the composition and are interactive.
 - Console check: no errors or warnings.
 
+### Pass 3 — passed after user timing feedback
+
+- Finding: P2 motion rhythm. The first implementation completed near two seconds and staggered the title, reflection, and three facets item by item, making the reveal feel fragmented and hurried.
+- Fix: replaced all intra-group stagger with three coordinated wrappers. Stage 1 begins at 0.22s and resolves the label, title, and reflection together; stage 2 begins at 1.50s and resolves all three facets together; stage 3 begins at 2.70s and resolves the course rail and all bottom actions together. Each group uses the same 0.82s soft blur-and-rise transition, completing near 3.52s.
+- Post-fix first-frame sampling: group 1, facets, recommendations, and actions all measured opacity `0` at reveal stage `0`; recommendation and action pointer events were `none`.
+- `01-stage.jpg`: the complete reflection group is visible with every later group still absent.
+- `02-stage.jpg`: all three evidence facets are visible as one unit with recommendations and actions still absent.
+- `03-stage.jpg`: recommendation rail and all lower controls appear as one final unit and become interactive together.
+- The static comparison was regenerated with the latest final implementation screenshot. Dynamic result copy and catalog imagery differ from the source by expected sensing/catalog state, while the approved layout remains unchanged.
+- Console check: no application errors or warnings; only the normal Vite connection and React development-mode notices were present.
+
 ## Focused-region comparison
 
-No separate static crop was needed because this pass does not change typography, card anatomy, imagery or spacing. The affected surface is temporal and spans the full result view; the three equal-frame stage captures provide the focused comparison.
+No separate static crop was needed because this pass does not change typography, card anatomy, imagery or spacing. The affected surface is temporal and spans the full result view; the three equal-frame stage captures are the focused comparison evidence.
 
 ## Follow-up polish
 
-- P3: after device testing, the 0.9s and 1.58s stage boundaries can be adjusted by roughly ±0.15s if the reveal feels too ceremonial or too quick on a specific WebView.
+- P3: after device testing, the gaps between the 0.22s, 1.50s, and 2.70s group boundaries can be adjusted by roughly ±0.15s without changing the approved grouped choreography.
 
 final result: passed
