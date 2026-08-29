@@ -99,9 +99,11 @@ button { font: inherit; -webkit-tap-highlight-color: transparent; }
 .profile-field-label svg { width: 13px; height: 13px; }
 .profile-date-values { margin-top: 17px; display: flex; align-items: baseline; justify-content: center; gap: 10px; }
 .profile-date-values button { min-width: 72px; padding: 0; border: 0; background: transparent; color: white; display: flex; align-items: baseline; justify-content: center; gap: 5px; }
-.profile-date-values button:first-child { min-width: 120px; }
+.profile-date-values .profile-year-value { min-width: 120px; }
 .profile-date-values strong { font-family: "Graphik", "Helvetica Neue", Arial, sans-serif; font-size: 35px; line-height: 1; font-weight: 600; letter-spacing: .08em; }
 .profile-date-values span { color: rgba(255,255,255,.88); font-size: 14px; }
+.profile-year-editor { min-width: 120px; display: flex; align-items: baseline; justify-content: center; gap: 5px; }
+.profile-year-editor input { width: 84px; padding: 0; border: 0; border-radius: 0; outline: none; background: transparent; color: white; font-family: "Graphik", "Helvetica Neue", Arial, sans-serif; font-size: 35px; line-height: 1; font-weight: 600; letter-spacing: .08em; text-align: center; box-shadow: inset 0 -1px rgba(255,255,255,.58); }
 .profile-time-field { margin-top: 41px; }
 .profile-single-value { margin-top: 14px; padding: 0; border: 0; background: transparent; color: white; font-size: 24px; line-height: 1.1; font-weight: 560; letter-spacing: .08em; }
 .profile-time-value { font-family: "Graphik", "Helvetica Neue", Arial, sans-serif; font-size: 32px; }

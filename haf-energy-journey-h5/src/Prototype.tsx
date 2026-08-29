@@ -18,7 +18,7 @@ import {
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from "react";
-import { Carousel, FlowStack, KeyboardInput, MobileScroll, useFlow, type FlowScreen } from "./mobile";
+import { Carousel, FlowStack, KeyboardInput, MobileScroll, useFlow, useKeyboard, type FlowScreen } from "./mobile";
 import numberThemesSource from "../skills/haf-numerology/references/number-themes.json";
 import chakraWordModelSource from "../skills/haf-chakra-energy/references/chakra-word-model.json";
 import synthesisModelSource from "../skills/haf-energy-synthesis/references/synthesis-model.json";
@@ -101,6 +101,8 @@ type JourneyState = {
   setPoint: (point: Point) => void;
   fieldSeed: string;
   setFieldSeed: (seed: string) => void;
+  sensingResetKey: number;
+  resetSensing: () => void;
   favorites: string[];
   toggleFavorite: (id: string) => void;
   lifePath: number;
@@ -924,6 +926,7 @@ function JourneyProvider({ children }: { children: ReactNode }) {
   const [userProfileStatus, setUserProfileStatus] = useState<JourneyState["userProfileStatus"]>("loading");
   const [point, setPoint] = useState<Point>({ x: -0.42, y: -0.24 });
   const [fieldSeed, setFieldSeed] = useState(createSensingFieldSeed);
+  const [sensingResetKey, setSensingResetKey] = useState(0);
   const [favorites, setFavorites] = useState<string[]>(() => loadLocal(favoriteStorageKey, []));
   const moduleViewTracked = useRef(false);
   const today = useMemo(() => new Date(), []);
@@ -961,6 +964,8 @@ function JourneyProvider({ children }: { children: ReactNode }) {
       setPoint,
       fieldSeed,
       setFieldSeed,
+      sensingResetKey,
+      resetSensing: () => setSensingResetKey((current) => current + 1),
       favorites,
       toggleFavorite: (id) => {
         const isSaved = favorites.includes(id);
@@ -1076,7 +1081,10 @@ function LoadingScreen() {
 
 function ProfileScreen() {
   const flow = useFlow();
+  const keyboard = useKeyboard();
   const { profile, setProfile, completeProfile, dateKey } = useJourney();
+  const [editingYear, setEditingYear] = useState(false);
+  const [yearDraft, setYearDraft] = useState(() => String(profile.birth.year));
   const genderOptions = ["女性", "男性", "不设限"];
   const daysInMonth = (year: number, month: number) => new Date(year, month, 0).getDate();
   const adjust = (field: keyof Profile["birth"], amount: number) => {
@@ -1097,6 +1105,19 @@ function ProfileScreen() {
     const current = values.indexOf(profile[field]);
     setChoice(field, values[(current + 1 + values.length) % values.length]);
   };
+  const commitYear = () => {
+    const parsedYear = Number.parseInt(yearDraft, 10);
+    const year = Number.isFinite(parsedYear) ? Math.min(2010, Math.max(1936, parsedYear)) : profile.birth.year;
+    const birth = {
+      ...profile.birth,
+      year,
+      day: Math.min(profile.birth.day, daysInMonth(year, profile.birth.month)),
+    };
+    setYearDraft(String(year));
+    setProfile({ ...profile, birth });
+    setEditingYear(false);
+    keyboard.hide();
+  };
   const genderLabel = profile.gender === "女性" ? "女" : profile.gender === "男性" ? "男" : "不设限";
 
   return (
@@ -1111,12 +1132,46 @@ function ProfileScreen() {
             出生日期 <CaretDownIcon />
           </button>
           <div className="profile-date-values">
-          {(["year", "month", "day"] as const).map((field) => (
-            <button key={field} type="button" onClick={() => adjust(field, 1)} aria-label={`${field}增加`}>
-              <strong>{profile.birth[field]}</strong>
-              <span>{field === "year" ? "年" : field === "month" ? "月" : "日"}</span>
-            </button>
-          ))}
+            {editingYear ? (
+              <label className="profile-year-editor">
+                <KeyboardInput
+                  value={yearDraft}
+                  onChange={(event) => setYearDraft(event.target.value.replace(/\D/g, "").slice(0, 4))}
+                  onBlur={commitYear}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      event.currentTarget.blur();
+                    }
+                  }}
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={4}
+                  autoFocus
+                  aria-label="输入出生年份"
+                />
+                <span>年</span>
+              </label>
+            ) : (
+              <button
+                className="profile-year-value"
+                type="button"
+                onClick={() => {
+                  setYearDraft(String(profile.birth.year));
+                  setEditingYear(true);
+                }}
+                aria-label="修改出生年份"
+              >
+                <strong>{profile.birth.year}</strong>
+                <span>年</span>
+              </button>
+            )}
+            {(["month", "day"] as const).map((field) => (
+              <button key={field} type="button" onClick={() => adjust(field, 1)} aria-label={`${field}增加`}>
+                <strong>{profile.birth[field]}</strong>
+                <span>{field === "month" ? "月" : "日"}</span>
+              </button>
+            ))}
           </div>
         </section>
         <section className="profile-field profile-time-field">
@@ -1291,7 +1346,7 @@ function SensingRippleCanvas({ cursor, active }: { cursor: SensingCursor; active
 function CompassScreen() {
   const flow = useFlow();
   const prefersReducedMotion = useReducedMotion();
-  const { point, setPoint, fieldSeed, setFieldSeed, lifePath, dayNumber, dateKey } = useJourney();
+  const { point, setPoint, fieldSeed, setFieldSeed, sensingResetKey, lifePath, dayNumber, dateKey } = useJourney();
   const initialInsight = useMemo(() => synthesizeEnergy(point, lifePath, dayNumber, dateKey, fieldSeed), [dateKey, dayNumber, fieldSeed, lifePath, point]);
   const [phase, setPhase] = useState<"idle" | "sensing" | "locked">("idle");
   const [currentInsight, setCurrentInsight] = useState(initialInsight);
@@ -1317,6 +1372,27 @@ function CompassScreen() {
   const sessionRef = useRef({ start: 0, lastTime: 0, lastX: 196, lastY: 448, revealX: 196, revealY: 448, cellKey: "", travel: 0 });
   const gestureStartRef = useRef({ cursor, insight: initialInsight, point, fieldSeed });
   const soundEnabledRef = useRef(soundEnabled);
+
+  useEffect(() => {
+    const neutralPoint = { x: 0, y: 0 };
+    const neutralInsight = synthesizeEnergy(neutralPoint, lifePath, dayNumber, dateKey, fieldSeedRef.current);
+    const neutralCursor: SensingCursor = {
+      x: 196,
+      y: 448,
+      xRatio: .5,
+      yRatio: .52,
+      pressure: .22,
+      tone: sensingDimensions[neutralInsight.primaryChakra.id].tone,
+      sequence: 0,
+    };
+    livePointRef.current = neutralPoint;
+    sessionRef.current = { start: 0, lastTime: 0, lastX: 196, lastY: 448, revealX: 196, revealY: 448, cellKey: "", travel: 0 };
+    gestureStartRef.current = { cursor: neutralCursor, insight: neutralInsight, point: neutralPoint, fieldSeed: fieldSeedRef.current };
+    setCurrentInsight(neutralInsight);
+    setCursor(neutralCursor);
+    setReadyToComplete(false);
+    setPhase("idle");
+  }, [dateKey, dayNumber, lifePath, sensingResetKey]);
 
   useEffect(() => {
     const session = sensingAudioSession;
@@ -1618,7 +1694,7 @@ function SynthesisScreen() {
 
 function ResultScreen() {
   const flow = useFlow();
-  const { lifePath, dayNumber, dateKey, point, fieldSeed, favorites, toggleFavorite } = useJourney();
+  const { lifePath, dayNumber, dateKey, point, fieldSeed, resetSensing, favorites, toggleFavorite } = useJourney();
   const insight = useMemo(() => synthesizeEnergy(point, lifePath, dayNumber, dateKey, fieldSeed), [point, lifePath, dayNumber, dateKey, fieldSeed]);
   const readingCacheKey = energyReadingCacheKey(dateKey, dayNumber, insight);
   const energyReading = loadLocal(readingCacheKey, insight.energySummary);
@@ -1652,6 +1728,7 @@ function ResultScreen() {
     if (sensingAudioSession && !sensingAudioSession.music.paused) {
       fadeSensingMusic(sensingAudioSession, .18, 900);
     }
+    resetSensing();
     flow.pop();
   };
 
